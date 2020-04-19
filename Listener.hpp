@@ -1,3 +1,6 @@
+#ifndef LISTENER_HPP
+#define LISTENER_HPP
+
 #include <iostream>
 #include <string>
 #include <sys/socket.h>
@@ -19,7 +22,6 @@ class Listener
 		int					_fd;
 		int					_maxFd;
 		struct sockaddr_in	_info;
-		char				_buf[4096];
 		fd_set				_readSet;
 		fd_set				_writeSet;
 		fd_set				_rSet;
@@ -39,3 +41,5 @@ class Listener
 		void	acceptConnection(int fd);
 		void	readRequest(int fd);
 };
+
+#endif

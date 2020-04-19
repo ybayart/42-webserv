@@ -1,3 +1,6 @@
+#ifndef HANDLER_HPP
+#define HANDLER_HPP
+
 #include <sstream>
 #include <iostream>
 #include <string>
@@ -12,6 +15,7 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include <map>
+#include "statusCode.h"
 
 class Handler
 {
@@ -47,3 +51,5 @@ class Handler
 		std::string		toString(Response response);
 
 };
+
+#endif

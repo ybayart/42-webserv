@@ -16,6 +16,7 @@ void			Handler::parseRequest(int fd, char *buf)
 	std::stringstream	is;
 	char				content[128];
 
+	//checkSyntax(buf);
 	is << buf;
 	is.getline(content, 128, ' ');
 	request.method = content;
@@ -36,9 +37,9 @@ std::string		Handler::generateResponse(int fd)
 	request = _requests[fd];
 	file_fd = open(request.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
 	if (file_fd == -1)
-		response.status_code = "404 Not Found";
+		response.status_code = NOTFOUND;
 	else
-		response.status_code = "200 OK";
+		response.status_code = OK;
 	response.body = readFile(file_fd);
 	return (toString(response));
 }
@@ -48,6 +49,7 @@ std::string		Handler::toString(Response response)
 	std::string		result;
 
 	result = response.version + " " + response.status_code;
+	// result += response.headers;
 	result += "\n\n";
 	result += response.body;
 	return (result);
@@ -57,13 +59,15 @@ std::string		Handler::readFile(int file_fd)
 {
 	char		buf[4096];
 	std::string	result;
+	int			ret;
 
 	if (file_fd == -1)
-		return ("404: File not found");
+		return ("404: File not found\n");
 	else
 	{
-		while (read(file_fd, buf, 4096))
+		while ((ret = read(file_fd, buf, 4095)))
 		{
+			buf[ret] = '\0';
 			result += buf;
 		}
 		return (result);

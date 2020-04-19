@@ -80,8 +80,9 @@ void	Listener::acceptConnection(int fd)
 void	Listener::readRequest(int fd)
 {
 	int 		bytes;
+	char		buf[4096];
 
-	bytes = recv(fd, _buf, 4096, 0);
+	bytes = recv(fd, buf, 4095, 0);
 	if (bytes <= 0)
 	{
 		if (bytes == -1)
@@ -95,9 +96,9 @@ void	Listener::readRequest(int fd)
 	}
 	else
 	{
-		_buf[bytes] = '\0';
-		std::cout << _buf;
-		_handler.parseRequest(fd, _buf);
+		buf[bytes] = '\0';
+		std::cout << buf;
+		_handler.parseRequest(fd, buf);
 		FD_CLR(fd, &_rSet);
 		FD_SET(fd, &_wSet);
 	}	
