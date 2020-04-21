@@ -43,7 +43,7 @@ void	Listener::getRequest(int fd)
 {
     if (FD_ISSET(fd, &_readSet))
 	{
-		if (fd == _fd)
+		if (fd == this->_fd)
 			acceptConnection(fd);
 		else
 			readRequest(fd);
@@ -54,7 +54,7 @@ void	Listener::sendResponse(int fd)
 {
 	std::string			response;
 
-	if (FD_ISSET(fd, &_writeSet) && fd != _fd)
+	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
 		response = _handler.generateResponse(fd);
 		send(fd, response.c_str(), response.size(), 0);

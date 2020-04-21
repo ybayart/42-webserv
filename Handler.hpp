@@ -14,6 +14,8 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <signal.h>
+#include <time.h>
+#include <sys/time.h>
 #include <map>
 #include "statusCode.h"
 
@@ -22,6 +24,7 @@ class Handler
 	public:
 		struct Request
 		{
+			bool								valid;
 			std::string							method;
 			std::string							uri;
 			std::string							version;
@@ -47,8 +50,10 @@ class Handler
 	private:
 		std::map<int, Request>	_requests;
 
-		std::string		readFile(int file_fd);
-		std::string		toString(Response response);
+		void			fillBody(Response &response, Request req);
+		std::string		toString(const Response &response, Request req);
+		bool			checkSyntax(char *req);
+		void			fillHeaders(Response &response, Request request);
 
 };
 
