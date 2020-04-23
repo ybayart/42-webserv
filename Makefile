@@ -6,7 +6,7 @@ SRCS = Listener.cpp \
 
 OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))
 
-NAME = a.out
+NAME = webserv
 
 CC = clang++
 

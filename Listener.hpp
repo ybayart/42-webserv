@@ -38,7 +38,7 @@ class Listener
 		void	sendResponse(int fd);
 
 	private:
-		void	acceptConnection(int fd);
+		void	acceptConnection();
 		void	readRequest(int fd);
 };
 

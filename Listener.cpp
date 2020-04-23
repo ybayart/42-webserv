@@ -44,7 +44,7 @@ void	Listener::getRequest(int fd)
     if (FD_ISSET(fd, &_readSet))
 	{
 		if (fd == this->_fd)
-			acceptConnection(fd);
+			acceptConnection();
 		else
 			readRequest(fd);
 	}
@@ -63,7 +63,7 @@ void	Listener::sendResponse(int fd)
 	}
 }
 
-void	Listener::acceptConnection(int fd)
+void	Listener::acceptConnection()
 {
 	int 				client;
 	struct sockaddr_in	info;

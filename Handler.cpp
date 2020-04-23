@@ -49,7 +49,7 @@ std::string		Handler::generateResponse(int fd)
 		response.status_code = BADREQUEST;
 	close(file_fd);
 	fillBody(response, request);
-	fillHeaders(response, request);
+	fillHeaders(response);
 	result = toString(response, request);
 	_requests.erase(fd);
 	return (result);
@@ -79,7 +79,7 @@ void			Handler::fillBody(Response &res, Request req)
 	std::string	result;
 	int			ret;
 	struct tm	*tm;
-	int			file_fd;
+	int			file_fd = -1;
 	struct stat	file_info;
 
 	if (res.status_code == OK)
@@ -123,7 +123,7 @@ bool			Handler::checkSyntax(const Request &req)
 	return (true);
 }
 
-void			Handler::fillHeaders(Response &response, Request request)
+void			Handler::fillHeaders(Response &response)
 {
 	struct timeval	time;
 	struct tm		*tm;

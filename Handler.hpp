@@ -54,7 +54,7 @@ class Handler
 		void			fillBody(Response &response, Request req);
 		std::string		toString(const Response &response, Request req);
 		bool			checkSyntax(const Request &request);
-		void			fillHeaders(Response &response, Request request);
+		void			fillHeaders(Response &response);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 
 };
