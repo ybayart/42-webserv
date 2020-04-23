@@ -16,17 +16,15 @@ void			Handler::parseRequest(int fd, char *req)
 	std::stringstream	is;
 	char				content[128];
 
-	request.valid = checkSyntax(req) ? true : false;
-	if (request.valid == true)
-	{
-		is << req;
-		is.getline(content, 128, ' ');
-		request.method = content;
-		is.getline(content, 128, ' ');
-		request.uri = content;
-		is.getline(content, 128, ' ');
-		request.version = content;
-	}
+	is << req;
+	is.getline(content, 128, ' ');
+	request.method = content;
+	is.getline(content, 128, ' ');
+	request.uri = content;
+	is.getline(content, 128, '\n');
+	request.version = content;
+	parseHeaders(is, request);
+	request.valid = checkSyntax(request);
 	_requests[fd] = request;
 }
 
@@ -80,10 +78,19 @@ void			Handler::fillBody(Response &res, Request req)
 	char		buf[4096];
 	std::string	result;
 	int			ret;
+	struct tm	*tm;
 	int			file_fd;
+	struct stat	file_info;
 
 	if (res.status_code == OK)
+	{
 		file_fd = open(req.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
+		fstat(file_fd, &file_info);
+		tm = localtime(&file_info.st_mtime);
+		ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
+		buf[ret] = '\0';
+		res.headers["Last-Modified"] = buf;
+	}
 	else if (res.status_code == NOTFOUND)
 		file_fd = open("errorPages/404.html", O_RDONLY);
 	else if (res.status_code == BADREQUEST)
@@ -94,17 +101,26 @@ void			Handler::fillBody(Response &res, Request req)
 		result += buf;
 	}
 	close(file_fd);
+	res.headers["Content-Length"] = std::to_string(result.size());
 	res.body = result;
 }
 
 //TO COMPLETE
-bool			Handler::checkSyntax(char *req)
+bool			Handler::checkSyntax(const Request &req)
 {
-	if (strncmp(req, "GET", 3)
-		&& strncmp(req, "HEAD", 4))
+	if (req.method.size() == 0 || req.uri.size() == 0
+		|| req.version.size() == 0)
 		return (false);
-	else
-		return (true);
+	if (req.method != "GET" && req.method != "POST"
+		&& req.method != "HEAD")
+		return (false);
+	if (req.uri[0] != '/')
+		return (false);
+	if (req.version != "HTTP/1.1")
+		return (false);
+	if (req.headers.find("Host") == req.headers.end())
+		return (false);
+	return (true);
 }
 
 void			Handler::fillHeaders(Response &response, Request request)
@@ -120,6 +136,25 @@ void			Handler::fillHeaders(Response &response, Request request)
 	buf[ret] = '\0';
 	response.headers["Date"] = buf;
 	response.headers["Server"] = "webserv";
-	response.headers["Content-Length"] = std::to_string(response.body.size());
+}
+
+void			Handler::parseHeaders(std::stringstream &buf, Request &req)
+{
+	char		content[128];
+	size_t		pos;
+	std::string	line;
+
+	while (!buf.eof())
+	{
+		buf.getline(content, 128);
+		if (strlen(content) < 1)
+			break ;
+		line = content;
+		if (line.find(':') != std::string::npos)
+		{
+			pos = line.find(':');
+ 			req.headers[line.substr(0, pos)] = line.substr(pos, std::string::npos);
+		}
+	}
 }
 

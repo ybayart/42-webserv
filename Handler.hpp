@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <map>
+#include <sys/stat.h>
 #include "statusCode.h"
 
 class Handler
@@ -52,8 +53,9 @@ class Handler
 
 		void			fillBody(Response &response, Request req);
 		std::string		toString(const Response &response, Request req);
-		bool			checkSyntax(char *req);
+		bool			checkSyntax(const Request &request);
 		void			fillHeaders(Response &response, Request request);
+		void			parseHeaders(std::stringstream &buf, Request &req);
 
 };
 
