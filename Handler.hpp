@@ -45,7 +45,7 @@ class Handler
 		Handler();
 		~Handler();
 
-		void			parseRequest(int fd, char *buf);
+		void			parseRequest(int fd, std::string buf);
 		std::string		generateResponse(int fd);
 
 	private:

@@ -10,19 +10,15 @@ Handler::~Handler()
 	
 }
 
-void			Handler::parseRequest(int fd, char *req)
+void			Handler::parseRequest(int fd, std::string req)
 {
 	Request				request;
 	std::stringstream	is;
-	char				content[128];
 
 	is << req;
-	is.getline(content, 128, ' ');
-	request.method = content;
-	is.getline(content, 128, ' ');
-	request.uri = content;
-	is.getline(content, 128, '\n');
-	request.version = content;
+	std::getline(is, request.method, ' ');
+	std::getline(is, request.uri, ' ');
+	std::getline(is, request.version);
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
 	_requests[fd] = request;
@@ -32,21 +28,21 @@ std::string		Handler::generateResponse(int fd)
 {
 	Response	response;
 	Request		request;
-	int			file_fd;
+	int			file_fd = -1;
 	std::string	result;
 
 	response.version = "HTTP/1.1";
 	request = _requests[fd];
-	file_fd = open(request.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
-	if (request.valid)
+	if (!request.valid)
+		response.status_code = BADREQUEST;
+	else
 	{
+		file_fd = open(request.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
 		if (file_fd == -1)
 			response.status_code = NOTFOUND;
 		else
 			response.status_code = OK;
 	}
-	else
-		response.status_code = BADREQUEST;
 	close(file_fd);
 	fillBody(response, request);
 	fillHeaders(response);
@@ -57,8 +53,8 @@ std::string		Handler::generateResponse(int fd)
 
 std::string		Handler::toString(const Response &response, Request req)
 {
-	std::string		result;
 	std::map<std::string, std::string>::const_iterator b;
+	std::string		result;
 
 	result = response.version + " " + response.status_code + "\n";
 	b = response.headers.begin();
@@ -116,7 +112,7 @@ bool			Handler::checkSyntax(const Request &req)
 		return (false);
 	if (req.uri[0] != '/')
 		return (false);
-	if (req.version != "HTTP/1.1")
+	if (req.version != "HTTP/1.1\r" && req.version != "HTTP/1.1")
 		return (false);
 	if (req.headers.find("Host") == req.headers.end())
 		return (false);
@@ -140,16 +136,14 @@ void			Handler::fillHeaders(Response &response)
 
 void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 {
-	char		content[128];
 	size_t		pos;
 	std::string	line;
 
 	while (!buf.eof())
 	{
-		buf.getline(content, 128);
-		if (strlen(content) < 1)
+		std::getline(buf, line);
+		if (line.size() < 1)
 			break ;
-		line = content;
 		if (line.find(':') != std::string::npos)
 		{
 			pos = line.find(':');
