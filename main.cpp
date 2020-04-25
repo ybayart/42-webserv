@@ -11,11 +11,23 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include "Listener.hpp"
+#include "Config.hpp"
 
-int main()
+int	ret_error(std::string error)
+{
+	std::cout << error << std::endl;
+	return (1);
+}
+
+int main(int ac, char **av)
 {
 	Listener	listener;
 
+	if (ac != 2)
+		return (ret_error("Usage: ./webserv config-file"));
+	else
+		listener.config(av[1]);
+	listener.init();
 	while (1)
 	{
 		listener.select();

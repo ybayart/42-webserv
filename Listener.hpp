@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <map>
 #include "Handler.hpp"
+#include "Config.hpp"
 
 class Listener
 {
@@ -27,11 +28,14 @@ class Listener
 		fd_set				_rSet;
 		fd_set				_wSet;
 		Handler				_handler;
+		Config				_conf;
 
 	public:
 		Listener();
 		~Listener();
 
+		void	config(char *file);
+		void	init();
 		int		getMaxFd() const;
 		void	select();
 		void	getRequest(int fd);

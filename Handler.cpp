@@ -18,7 +18,7 @@ void			Handler::parseRequest(int fd, std::string req)
 	is << req;
 	std::getline(is, request.method, ' ');
 	std::getline(is, request.uri, ' ');
-	std::getline(is, request.version);
+	std::getline(is, request.version,  '\n');
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
 	_requests[fd] = request;

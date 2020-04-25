@@ -2,6 +2,7 @@ DIR_O = objs
 
 SRCS = Listener.cpp \
 	Handler.cpp \
+	Config.cpp \
 	main.cpp
 
 OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))

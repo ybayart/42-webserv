@@ -3,28 +3,35 @@
 Listener::Listener()
 {
 	int yes = 1;
-	int	port = 8080;
 
-	_info.sin_family = AF_INET;
-	_info.sin_addr.s_addr = INADDR_ANY;
-	_info.sin_port = htons(port);
 	FD_ZERO(&_rSet);
 	FD_ZERO(&_wSet);
 	FD_ZERO(&_readSet);
 	FD_ZERO(&_writeSet);
-
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
     setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-    bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-    listen(_fd, 5);
-	fcntl(_fd, F_SETFL, O_NONBLOCK);
-    FD_SET(_fd, &_rSet);
-    _maxFd = _fd;
 }
 
 Listener::~Listener()
 {
 	close(_fd);
+}
+
+void	Listener::config(char *file)
+{
+	_conf.parse(file);
+}
+
+void	Listener::init()
+{
+	_info.sin_family = AF_INET;
+	_info.sin_addr.s_addr = INADDR_ANY;
+	_info.sin_port = htons(_conf._port);
+	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
+    listen(_fd, 5);
+	fcntl(_fd, F_SETFL, O_NONBLOCK);
+    FD_SET(_fd, &_rSet);
+    _maxFd = _fd;
 }
 
 int		Listener::getMaxFd() const
