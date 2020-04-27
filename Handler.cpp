@@ -178,14 +178,19 @@ void			Handler::execCGI(int fd, Request &req)
 {
 	char			**args;
 	std::string		path;
-	int				ret;
+	int				ret = fd;
+	int				tubes[2];
 
 	path = req.uri.substr(1, std::string::npos);
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
+
+	pipe(tubes);
 	if (fork() == 0)
 	{
+		close(tubes[1]);
+		dup2(tubes[0], 0);
 		dup2(fd, 1);
 		errno = 0;
 		ret = execv(path.c_str(), args);
@@ -193,7 +198,11 @@ void			Handler::execCGI(int fd, Request &req)
 			std::cout << "shit happened: " << strerror(errno) << std::endl;
 	}
 	else
+	{
+		close(tubes[0]);
+		write(tubes[1], (req.body + "\n").c_str(), req.body.size() + 1);
 		wait(NULL);
+	}
 	free(args[0]);
 	free(args);
 }
