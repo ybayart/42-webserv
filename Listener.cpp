@@ -109,7 +109,7 @@ void	Listener::readRequest(int fd)
 			result += buf;
 		}
 	}
-	std::cout << result;
+	std::cout << result << std::endl;
 	_handler.parseRequest(fd, result);
 	FD_CLR(fd, &_rSet);
 	FD_SET(fd, &_wSet);

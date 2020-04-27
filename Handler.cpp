@@ -21,6 +21,8 @@ void			Handler::parseRequest(int fd, std::string req)
 	std::getline(is, request.version,  '\n');
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
+	if (request.valid && request.method == "POST")
+		parseBody(is, request);
 	_requests[fd] = request;
 }
 
@@ -44,8 +46,17 @@ std::string		Handler::generateResponse(int fd)
 			response.status_code = OK;
 	}
 	close(file_fd);
-	fillBody(response, request);
-	fillHeaders(response);
+	if (request.valid && request.uri.find(".cgi") != std::string::npos)
+	{
+		std::cout << "executing CGI...\n";
+		execCGI(fd, request);
+		std::cout << "done!\n";
+	}
+	else
+	{
+		fillBody(response, request);
+		fillHeaders(response);
+	}
 	result = toString(response, request);
 	_requests.erase(fd);
 	return (result);
@@ -142,7 +153,7 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 	while (!buf.eof())
 	{
 		std::getline(buf, line);
-		if (line.size() < 1)
+		if (line.size() < 1 || line[0] == '\n' || line[0] == '\r')
 			break ;
 		if (line.find(':') != std::string::npos)
 		{
@@ -150,5 +161,40 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
  			req.headers[line.substr(0, pos)] = line.substr(pos, std::string::npos);
 		}
 	}
+}
+
+void			Handler::parseBody(std::stringstream &buf, Request &req)
+{
+	std::string	line;
+
+	while (!buf.eof())
+	{
+		std::getline(buf, line);
+		req.body += line;
+	}
+}
+
+void			Handler::execCGI(int fd, Request &req)
+{
+	char			**args;
+	std::string		path;
+	int				ret;
+
+	path = req.uri.substr(1, std::string::npos);
+	args = (char **)(malloc(sizeof(char *) * 2));
+	args[0] = strdup(path.c_str());
+	args[1] = NULL;
+	if (fork() == 0)
+	{
+		dup2(fd, 1);
+		errno = 0;
+		ret = execv(path.c_str(), args);
+		if (ret == -1)
+			std::cout << "shit happened: " << strerror(errno) << std::endl;
+	}
+	else
+		wait(NULL);
+	free(args[0]);
+	free(args);
 }
 

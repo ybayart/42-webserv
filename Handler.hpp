@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #include <map>
 #include <sys/stat.h>
+#include <sys/errno.h>
 #include "statusCode.h"
 
 class Handler
@@ -56,6 +57,8 @@ class Handler
 		bool			checkSyntax(const Request &request);
 		void			fillHeaders(Response &response);
 		void			parseHeaders(std::stringstream &buf, Request &req);
+		void			parseBody(std::stringstream &buf, Request &req);
+		void			execCGI(int fd, Request &req);
 
 };
 
