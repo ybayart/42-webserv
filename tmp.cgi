@@ -1,15 +1,17 @@
-#!/usr/bin/python
+#!/usr/local/bin/python3
 
 import cgi, cgitb
 cgitb.enable()
 
-input_data = cgi.FieldStorage()
+try:
+	input_data = cgi.FieldStorage()
+except:
+	print('caca')
 
 print('HTTP/1.1 200 OK');
 print('Content-Type: text/html') # HTML is following
 print('')                         # Leave a blank line
 print('<h1>Addition Results</h1>')
-print(input_data["num1"].value)
 try:
     num1 = int(input_data["num1"].value)
     num2 = int(input_data["num2"].value)

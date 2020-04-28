@@ -1,7 +1,6 @@
 #!/usr/local/bin/python3
 
-import cgi, cgitb
-cgitb.enable()
+import cgi
 
 input_data = cgi.FieldStorage()
 

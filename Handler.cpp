@@ -32,6 +32,7 @@ std::string		Handler::generateResponse(int fd)
 	Request		request;
 	int			file_fd = -1;
 	std::string	result;
+	std::string	path;
 
 	response.version = "HTTP/1.1";
 	request = _requests[fd];
@@ -39,7 +40,9 @@ std::string		Handler::generateResponse(int fd)
 		response.status_code = BADREQUEST;
 	else
 	{
-		file_fd = open(request.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
+		path = request.uri.substr(1, request.uri.find('?') - 1);
+		std::cout << path << std::endl;
+		file_fd = open(path.c_str(), O_RDONLY);
 		if (file_fd == -1)
 			response.status_code = NOTFOUND;
 		else
@@ -88,10 +91,12 @@ void			Handler::fillBody(Response &res, Request req)
 	struct tm	*tm;
 	int			file_fd = -1;
 	struct stat	file_info;
+	std::string	path;
 
 	if (res.status_code == OK)
 	{
-		file_fd = open(req.uri.substr(1, std::string::npos).c_str(), O_RDONLY);
+		path = req.uri.substr(1, req.uri.find('?') - 1);
+		file_fd = open(path.c_str(), O_RDONLY);
 		fstat(file_fd, &file_info);
 		tm = localtime(&file_info.st_mtime);
 		ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
@@ -176,15 +181,17 @@ void			Handler::parseBody(std::stringstream &buf, Request &req)
 
 void			Handler::execCGI(int fd, Request &req)
 {
-	char			**args;
+	char			**args = NULL;
+	char			**env = NULL;
 	std::string		path;
 	int				ret = fd;
 	int				tubes[2];
 
-	path = req.uri.substr(1, std::string::npos);
+	path = req.uri.substr(1, req.uri.find('?') - 1);
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
+	env = setEnv(req);
 
 	pipe(tubes);
 	if (fork() == 0)
@@ -193,7 +200,7 @@ void			Handler::execCGI(int fd, Request &req)
 		dup2(tubes[0], 0);
 		dup2(fd, 1);
 		errno = 0;
-		ret = execv(path.c_str(), args);
+		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
 			std::cout << "shit happened: " << strerror(errno) << std::endl;
 	}
@@ -205,5 +212,37 @@ void			Handler::execCGI(int fd, Request &req)
 	}
 	free(args[0]);
 	free(args);
+	free(env);
 }
 
+char			**Handler::setEnv(Request &req)
+{
+	char								**env;
+	std::map<std::string, std::string> 	envMap;
+
+	envMap["CONTENT_LENGTH"] = std::to_string(req.body.size());
+	envMap["CONTENT_TYPE"] = "text/html";
+	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+	// envMap["PATH_INFO"] = "";
+	// envMap["PATH_TRANSLATED"] = "";
+	envMap["QUERY_STRING"] = req.uri.substr(req.uri.find('?') + 1);
+	envMap["SCRIPT_NAME"] = "add.cgi";
+	envMap["SERVER_NAME"] = "localhost";
+	envMap["SERVER_PORT"] = "8080";
+	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
+	envMap["SERVER_SOFTWARE"] = "webserv";
+	envMap["REQUEST_URI"] = req.uri;
+	envMap["REQUEST_METHOD"] = req.method;
+	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
+	std::map<std::string, std::string>::iterator it = envMap.begin();
+	int i = 0;
+	while (it != envMap.end())
+	{
+		env[i] = strdup((it->first + "=" + it->second).c_str());
+		std::cout << env[i] << std::endl;
+		++i;
+		++it;
+	}
+	env[i] = NULL;
+	return (env);
+}

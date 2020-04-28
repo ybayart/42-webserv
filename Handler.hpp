@@ -58,6 +58,7 @@ class Handler
 		void			fillHeaders(Response &response);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			parseBody(std::stringstream &buf, Request &req);
+		char			**setEnv(Request &req);
 		void			execCGI(int fd, Request &req);
 
 };
