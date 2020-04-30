@@ -229,12 +229,12 @@ char			**Handler::setEnv(Request &req)
 	std::map<std::string, std::string> 	envMap;
 
 	envMap["CONTENT_LENGTH"] = std::to_string(req.body.size());
-	envMap["CONTENT_TYPE"] = "text/html";
+	// envMap["CONTENT_TYPE"] = "text/html";
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
 	// envMap["PATH_INFO"] = "";
 	// envMap["PATH_TRANSLATED"] = "";
 	envMap["QUERY_STRING"] = req.uri.substr(req.uri.find('?') + 1);
-	envMap["SCRIPT_NAME"] = "add.cgi";
+	// envMap["SCRIPT_NAME"] = "add.cgi";
 	envMap["SERVER_NAME"] = "localhost";
 	envMap["SERVER_PORT"] = "8080";
 	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
