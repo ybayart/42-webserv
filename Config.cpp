@@ -11,7 +11,7 @@ Config::~Config()
 
 }
 
-void	Config::parse(char *file)
+int		Config::parse(char *file)
 {
 	int 		fd;
 	int			ret;
@@ -26,4 +26,5 @@ void	Config::parse(char *file)
 	}
 	close(fd);
 	_port = 8080;
+	return (0);
 }

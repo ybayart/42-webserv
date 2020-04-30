@@ -26,43 +26,47 @@ void			Handler::parseRequest(int fd, std::string req)
 	_requests[fd] = request;
 }
 
-std::string		Handler::generateResponse(int fd)
+void			Handler::sendStatusCode(int fd, Request &req, Response &res)
 {
-	Response	response;
-	Request		request;
 	int			file_fd = -1;
 	std::string	result;
 	std::string	path;
 
-	response.version = "HTTP/1.1";
-	request = _requests[fd];
-	if (!request.valid)
-		response.status_code = BADREQUEST;
+	res.version = "HTTP/1.1";
+	if (!req.valid)
+		res.status_code = BADREQUEST;
 	else
 	{
-		path = request.uri.substr(1, request.uri.find('?') - 1);
-		std::cout << path << std::endl;
+		path = req.uri.substr(1, req.uri.find('?') - 1);
 		file_fd = open(path.c_str(), O_RDONLY);
 		if (file_fd == -1)
-			response.status_code = NOTFOUND;
+			res.status_code = NOTFOUND;
 		else
-			response.status_code = OK;
+			res.status_code = OK;
 	}
 	close(file_fd);
+	result = res.version + " " + res.status_code + "\n";
+	write(fd, result.c_str(), result.size());
+}
+
+void			Handler::sendResponse(int fd)
+{
+	std::string		result;
+	Request			request;
+	Response		response;
+
+	request = _requests[fd];
+	sendStatusCode(fd, request, response);
 	if (request.valid && request.uri.find(".cgi") != std::string::npos)
-	{
-		std::cout << "executing CGI...\n";
 		execCGI(fd, request);
-		std::cout << "done!\n";
-	}
 	else
 	{
-		fillBody(response, request);
 		fillHeaders(response);
+		fillBody(response, request);
+		result = toString(response, request);
+		write(fd, result.c_str(), result.size());
 	}
-	result = toString(response, request);
 	_requests.erase(fd);
-	return (result);
 }
 
 std::string		Handler::toString(const Response &response, Request req)
@@ -70,7 +74,6 @@ std::string		Handler::toString(const Response &response, Request req)
 	std::map<std::string, std::string>::const_iterator b;
 	std::string		result;
 
-	result = response.version + " " + response.status_code + "\n";
 	b = response.headers.begin();
 	while (b != response.headers.end())
 	{
@@ -174,7 +177,7 @@ void			Handler::parseBody(std::stringstream &buf, Request &req)
 
 	while (!buf.eof())
 	{
-		std::getline(buf, line);
+		std::getline(buf, line, '\n');
 		req.body += line;
 	}
 }
@@ -202,16 +205,21 @@ void			Handler::execCGI(int fd, Request &req)
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
-			std::cout << "shit happened: " << strerror(errno) << std::endl;
+			std::cout << "Error with CGI: " << strerror(errno) << std::endl;
 	}
 	else
 	{
 		close(tubes[0]);
-		write(tubes[1], (req.body + "\n").c_str(), req.body.size() + 1);
-		wait(NULL);
+		write(tubes[1], req.body.c_str(), req.body.size() + 1);
 	}
 	free(args[0]);
 	free(args);
+	int i = 0;
+	while (env[i])
+	{
+		free(env[i]);
+		++i;
+	}
 	free(env);
 }
 
@@ -233,13 +241,13 @@ char			**Handler::setEnv(Request &req)
 	envMap["SERVER_SOFTWARE"] = "webserv";
 	envMap["REQUEST_URI"] = req.uri;
 	envMap["REQUEST_METHOD"] = req.method;
+
 	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
 	std::map<std::string, std::string>::iterator it = envMap.begin();
 	int i = 0;
 	while (it != envMap.end())
 	{
 		env[i] = strdup((it->first + "=" + it->second).c_str());
-		std::cout << env[i] << std::endl;
 		++i;
 		++it;
 	}

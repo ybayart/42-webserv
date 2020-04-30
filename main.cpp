@@ -26,7 +26,8 @@ int main(int ac, char **av)
 	if (ac != 2)
 		return (ret_error("Usage: ./webserv config-file"));
 	else
-		listener.config(av[1]);
+		if (listener.config(av[1]) == -1)
+			return (ret_error("Error: wrong syntax in config file"));
 	listener.init();
 	while (1)
 	{

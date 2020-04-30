@@ -16,7 +16,7 @@ class Config
 		Config();
 		~Config();
 
-		void	parse(char *file);
+		int		parse(char *file);
 };
 
 #endif

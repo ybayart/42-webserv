@@ -3,10 +3,7 @@
 import cgi, cgitb
 cgitb.enable()
 
-try:
-	input_data = cgi.FieldStorage()
-except:
-	print('caca')
+input_data = cgi.FieldStorage()
 
 print('HTTP/1.1 200 OK');
 print('Content-Type: text/html') # HTML is following

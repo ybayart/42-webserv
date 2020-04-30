@@ -17,9 +17,9 @@ Listener::~Listener()
 	close(_fd);
 }
 
-void	Listener::config(char *file)
+int		Listener::config(char *file)
 {
-	_conf.parse(file);
+	return (_conf.parse(file));
 }
 
 void	Listener::init()
@@ -59,12 +59,9 @@ void	Listener::getRequest(int fd)
 
 void	Listener::sendResponse(int fd)
 {
-	std::string			response;
-
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
-		response = _handler.generateResponse(fd);
-		send(fd, response.c_str(), response.size(), 0);
+		_handler.sendResponse(fd);
 		close(fd);
 		FD_CLR(fd, &_wSet);
 	}

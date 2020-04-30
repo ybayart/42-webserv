@@ -34,7 +34,7 @@ class Listener
 		Listener();
 		~Listener();
 
-		void	config(char *file);
+		int		config(char *file);
 		void	init();
 		int		getMaxFd() const;
 		void	select();

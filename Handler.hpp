@@ -47,11 +47,12 @@ class Handler
 		~Handler();
 
 		void			parseRequest(int fd, std::string buf);
-		std::string		generateResponse(int fd);
+		void			sendResponse(int fd);
 
 	private:
 		std::map<int, Request>	_requests;
 
+		void			sendStatusCode(int fd, Request &req, Response &res);
 		void			fillBody(Response &response, Request req);
 		std::string		toString(const Response &response, Request req);
 		bool			checkSyntax(const Request &request);
