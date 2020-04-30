@@ -87,27 +87,29 @@ void	Listener::readRequest(int fd)
 	char		buf[4096];
 	std::string	result;
 
-	while ((bytes = recv(fd, buf, 4095, 0)) > 0)
+	bytes = recv(fd, buf, 4095, 0);
+	if (bytes <= 0)
 	{
-		if (bytes <= 0)
-		{
-			if (bytes == -1)
-				std::cout << "reading error\n";
-			else
-			{
-				std::cout << "connection closed\n";
-				close(fd);
-				FD_CLR(fd, &_rSet);
-			}
-		}
+		if (bytes == -1)
+			std::cout << "reading error\n";
 		else
 		{
-			buf[bytes] = '\0';
-			result += buf;
+			std::cout << "connection closed\n";
+			close(fd);
+			FD_CLR(fd, &_rSet);
+			FD_CLR(fd, &_wSet);
 		}
 	}
-	std::cout << result << std::endl;
-	_handler.parseRequest(fd, result);
-	FD_CLR(fd, &_rSet);
-	FD_SET(fd, &_wSet);
+	else
+	{
+		buf[bytes] = '\0';
+		result += buf;
+	}
+	std::cout << "[" + result + "]" << std::endl;
+	if (result != "")
+	{
+		_handler.parseRequest(fd, result);
+		FD_CLR(fd, &_rSet);
+		FD_SET(fd, &_wSet);
+	}
 }

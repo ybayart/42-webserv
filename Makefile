@@ -9,6 +9,8 @@ OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))
 
 NAME = webserv
 
+CONFIG = tmp.cgi
+
 CC = clang++
 
 CFLAGS = -Wall -Wextra -Werror
@@ -21,6 +23,10 @@ $(DIR_O)/%.o: %.cpp
 
 $(NAME): $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
+
+test: $(OBJS)
+	$(CC) $^ -o $(NAME)
+	./$(NAME) $(CONFIG)
 
 clean:
 	rm -rf $(DIR_O)
