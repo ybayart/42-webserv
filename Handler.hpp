@@ -61,6 +61,7 @@ class Handler
 		void			parseBody(std::stringstream &buf, Request &req);
 		char			**setEnv(Request &req);
 		void			execCGI(int fd, Request &req);
+		void			freeAll(char **args, char **env);
 
 };
 

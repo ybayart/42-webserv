@@ -11,7 +11,6 @@
 #include <netinet/in.h>
 #include <signal.h>
 #include "Listener.hpp"
-#include "Config.hpp"
 
 int	ret_error(std::string error)
 {

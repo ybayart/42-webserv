@@ -110,7 +110,7 @@ void			Handler::fillBody(Response &res, Request req)
 		file_fd = open("errorPages/404.html", O_RDONLY);
 	else if (res.status_code == BADREQUEST)
 		file_fd = open("errorPages/400.html", O_RDONLY);
-	while ((ret = read(file_fd, buf, 4095)))
+	while ((ret = read(file_fd, buf, 4095)) > 0)
 	{
 		buf[ret] = '\0';
 		result += buf;
@@ -212,15 +212,7 @@ void			Handler::execCGI(int fd, Request &req)
 		close(tubes[0]);
 		write(tubes[1], req.body.c_str(), req.body.size() + 1);
 	}
-	free(args[0]);
-	free(args);
-	int i = 0;
-	while (env[i])
-	{
-		free(env[i]);
-		++i;
-	}
-	free(env);
+	freeAll(args, env);
 }
 
 char			**Handler::setEnv(Request &req)
@@ -231,10 +223,10 @@ char			**Handler::setEnv(Request &req)
 	envMap["CONTENT_LENGTH"] = std::to_string(req.body.size());
 	// envMap["CONTENT_TYPE"] = "text/html";
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-	// envMap["PATH_INFO"] = "";
+	// envMap["PATH_INFO"] = req.uri.substr(req.uri.find(".cgi") + 1, req.uri.find('?') - 1);
 	// envMap["PATH_TRANSLATED"] = "";
 	envMap["QUERY_STRING"] = req.uri.substr(req.uri.find('?') + 1);
-	// envMap["SCRIPT_NAME"] = "add.cgi";
+	// envMap["SCRIPT_NAME"] = req.uri.substr();
 	envMap["SERVER_NAME"] = "localhost";
 	envMap["SERVER_PORT"] = "8080";
 	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
@@ -253,4 +245,17 @@ char			**Handler::setEnv(Request &req)
 	}
 	env[i] = NULL;
 	return (env);
+}
+
+void				Handler::freeAll(char **args, char **env)
+{
+	free(args[0]);
+	free(args);
+	int i = 0;
+	while (env[i])
+	{
+		free(env[i]);
+		++i;
+	}
+	free(env);
 }

@@ -24,9 +24,11 @@ int		Listener::config(char *file)
 
 void	Listener::init()
 {
+	int port = atoi(_conf._elmts["server"]["listen"].c_str());
+	
 	_info.sin_family = AF_INET;
 	_info.sin_addr.s_addr = INADDR_ANY;
-	_info.sin_port = htons(_conf._port);
+	_info.sin_port = htons(port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
     listen(_fd, 5);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
@@ -73,12 +75,14 @@ void	Listener::acceptConnection()
 	struct sockaddr_in	info;
 	socklen_t			len;
 
+	memset(&info, 0, sizeof(info));
 	client = accept(_fd, (struct sockaddr *)&info, &len);
 	fcntl(client, F_SETFL, O_NONBLOCK);
 	FD_SET(client, &_rSet);
 	if (client > _maxFd)
 		_maxFd = client;
-	std::cout << "new connection!\n";
+	std::cout << "new connection from "
+	<< inet_ntoa(info.sin_addr) << ":" << htons(info.sin_port) << std::endl;
 }
 
 void	Listener::readRequest(int fd)
@@ -87,7 +91,7 @@ void	Listener::readRequest(int fd)
 	char		buf[4096];
 	std::string	result;
 
-	bytes = recv(fd, buf, 4095, 0);
+	bytes = read(fd, buf, 4095);
 	if (bytes <= 0)
 	{
 		if (bytes == -1)
@@ -103,7 +107,7 @@ void	Listener::readRequest(int fd)
 	else
 	{
 		buf[bytes] = '\0';
-		result += buf;
+		result = buf;
 	}
 	std::cout << "[" + result + "]" << std::endl;
 	if (result != "")

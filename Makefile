@@ -9,7 +9,7 @@ OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))
 
 NAME = webserv
 
-CONFIG = tmp.cgi
+CONFIG = webserv.conf
 
 CC = clang++
 
