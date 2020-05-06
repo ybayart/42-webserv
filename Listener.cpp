@@ -24,8 +24,8 @@ int		Listener::config(char *file)
 
 void	Listener::init()
 {
-	int port = atoi(_conf._elmts["server"]["listen"].c_str());
-	
+	int port = atoi(_conf._elmts["server|"]["listen"].c_str());
+
 	_info.sin_family = AF_INET;
 	_info.sin_addr.s_addr = INADDR_ANY;
 	_info.sin_port = htons(port);

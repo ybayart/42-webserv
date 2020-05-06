@@ -15,7 +15,7 @@ class Config
 	friend class Listener;
 
 	public:
-		typedef std::map<std::string, std::string> elmt;
+		typedef std::map<std::string, std::string>	elmt;
 
 	private:
 		std::map<std::string, elmt> _elmts;
@@ -28,6 +28,7 @@ class Config
 
 	private:
 		std::string	readFile(char *file);
+		int			getContent(std::stringstream &is, std::string &context, std::string prec);
 };
 
 #endif
