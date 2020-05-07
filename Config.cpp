@@ -36,12 +36,14 @@ int		Config::parse(char *file)
 
 	parsed = readFile(file);
 	if (parsed == "")
-		return (1);
+		return (-1);
 	is << parsed;
 	while (!is.eof())
 	{
 		std::getline(is, line);
-		if (is.peek() == '{')
+		while (line[0] == ' ' || line[0] == '\t')
+			line.erase(line.begin());
+		if (line.back() == '{')
 			if (getContent(is, context, line) == -1)
 				return (-1);
 	}
@@ -55,11 +57,17 @@ int		Config::getContent(std::stringstream &is, std::string &context, std::string
 	std::string			value;
 	elmt				cur;
 
+	prec.pop_back();
+	while (prec.back() == ' ' || prec.back() == '\t')
+		prec.pop_back();
 	context += prec + "|";
-	std::getline(is, line);
+	while (line[0] == ' ' || line[0] == '\t')
+		line.erase(line.begin());
 	while (line != "}" && !is.eof())
 	{
 		std::getline(is, line);
+		while (line[0] == ' ' || line[0] == '\t')
+			line.erase(line.begin());
 		if (line == "}" || is.eof())
 		{
 			if (line == "}")
@@ -69,9 +77,9 @@ int		Config::getContent(std::stringstream &is, std::string &context, std::string
 			}
 			break ;
 		}
-		if (line.back() != ';' && is.peek() != '{')
+		if (line.back() != ';' && line.back() != '{')
 			return (-1);
-		if (is.peek() == '{')
+		if (line.back() == '{')
 			getContent(is, context, line);
 		else
 		{
