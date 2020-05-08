@@ -24,8 +24,8 @@ $(DIR_O)/%.o: %.cpp
 $(NAME): $(OBJS)
 	$(CC) $(CFLAGS) $^ -o $@
 
-test: $(OBJS)
-	$(CC) $^ -o $(NAME)
+test:
+	$(CC) $(SRCS) -o $(NAME)
 	./$(NAME) $(CONFIG)
 
 clean:

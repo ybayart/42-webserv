@@ -20,6 +20,7 @@
 #include <sys/stat.h>
 #include <sys/errno.h>
 #include "statusCode.h"
+#include "Config.hpp"
 
 class Handler
 {
@@ -49,21 +50,23 @@ class Handler
 		~Handler();
 
 		void			parseRequest(int fd, std::string buf);
-		void			sendResponse(int fd);
+		void			sendResponse(int fd, Config &conf);
 
 	private:
 		std::map<int, Request>	_requests;
+		Config					_conf;
 
-		void			sendStatusCode(int fd, Request &req, Response &res);
-		void			fillBody(Response &response, Request req);
+		void			sendStatusCode(int fd, Request &req, Response &res, Config &conf);
+		void			fillBody(Response &response, Request &req, Config &conf);
 		std::string		toString(const Response &response, Request req);
 		bool			checkSyntax(const Request &request);
 		void			fillHeaders(Response &res, Request &req);
 		std::string		findType(Request &req);
+		std::string		findPath(std::string uri, Config &conf);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			parseBody(std::stringstream &buf, Request &req);
 		char			**setEnv(Request &req);
-		void			execCGI(int fd, Request &req);
+		void			execCGI(int fd, Request &req, Config &conf);
 		void			freeAll(char **args, char **env);
 		void			assignMIME();
 

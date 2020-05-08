@@ -26,7 +26,7 @@ void			Handler::parseRequest(int fd, std::string req)
 	_requests[fd] = request;
 }
 
-void			Handler::sendStatusCode(int fd, Request &req, Response &res)
+void			Handler::sendStatusCode(int fd, Request &req, Response &res, Config &conf)
 {
 	int			file_fd = -1;
 	std::string	result;
@@ -37,7 +37,7 @@ void			Handler::sendStatusCode(int fd, Request &req, Response &res)
 		res.status_code = BADREQUEST;
 	else
 	{
-		path = req.uri.substr(1, req.uri.find('?') - 1);
+		path = findPath(req.uri, conf);
 		file_fd = open(path.c_str(), O_RDONLY);
 		if (file_fd == -1)
 			res.status_code = NOTFOUND;
@@ -49,20 +49,35 @@ void			Handler::sendStatusCode(int fd, Request &req, Response &res)
 	write(fd, result.c_str(), result.size());
 }
 
-void			Handler::sendResponse(int fd)
+std::string 	Handler::findPath(std::string uri, Config &conf)
+{
+	std::string		directory;
+	std::string		file;
+	std::string 	path;
+
+	directory = uri.substr(0, uri.find_last_of('/'));
+	file = uri.substr(uri.find_last_of('/'), uri.find('?'));
+	if (directory == "")
+		directory = "/";
+	if (conf._elmts["server|location " + directory + "|"].find("root") != conf._elmts["server|location " + directory + "|"].end())
+		path = conf._elmts["server|location " + directory + "|"]["root"] + file;
+	return (path);
+}
+
+void			Handler::sendResponse(int fd, Config &conf)
 {
 	std::string		result;
 	Request			request;
 	Response		response;
 
 	request = _requests[fd];
-	sendStatusCode(fd, request, response);
+	sendStatusCode(fd, request, response, conf);
 	if (request.valid && request.uri.find(".cgi") != std::string::npos)
-		execCGI(fd, request);
+		execCGI(fd, request, conf);
 	else
 	{
 		fillHeaders(response, request);
-		fillBody(response, request);
+		fillBody(response, request, conf);
 		result = toString(response, request);
 		write(fd, result.c_str(), result.size());
 	}
@@ -86,7 +101,7 @@ std::string		Handler::toString(const Response &response, Request req)
 	return (result);
 }
 
-void			Handler::fillBody(Response &res, Request req)
+void			Handler::fillBody(Response &res, Request &req, Config &conf)
 {
 	char		buf[4096];
 	std::string	result;
@@ -98,7 +113,7 @@ void			Handler::fillBody(Response &res, Request req)
 
 	if (res.status_code == OK)
 	{
-		path = req.uri.substr(1, req.uri.find('?') - 1);
+		path = findPath(req.uri, conf);
 		file_fd = open(path.c_str(), O_RDONLY);
 		fstat(file_fd, &file_info);
 		tm = localtime(&file_info.st_mtime);
@@ -151,7 +166,8 @@ void			Handler::fillHeaders(Response &res, Request &req)
 	buf[ret] = '\0';
 	res.headers["Date"] = buf;
 	res.headers["Server"] = "webserv";
-	res.headers["Content-Type"] = findType(req);
+	if (res.status_code == OK)
+		res.headers["Content-Type"] = findType(req);
 }
 
 std::string		Handler::findType(Request &req)
@@ -194,7 +210,7 @@ void			Handler::parseBody(std::stringstream &buf, Request &req)
 	}
 }
 
-void			Handler::execCGI(int fd, Request &req)
+void			Handler::execCGI(int fd, Request &req, Config &conf)
 {
 	char			**args = NULL;
 	char			**env = NULL;
@@ -202,7 +218,7 @@ void			Handler::execCGI(int fd, Request &req)
 	int				ret = fd;
 	int				tubes[2];
 
-	path = req.uri.substr(1, req.uri.find('?') - 1);
+	path = findPath(req.uri, conf);
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;

@@ -63,7 +63,7 @@ void	Listener::sendResponse(int fd)
 {
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
-		_handler.sendResponse(fd);
+		_handler.sendResponse(fd, _conf);
 		close(fd);
 		FD_CLR(fd, &_wSet);
 	}

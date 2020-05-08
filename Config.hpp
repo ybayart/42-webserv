@@ -13,6 +13,7 @@
 class Config
 {
 	friend class Listener;
+	friend class Handler;
 
 	public:
 		typedef std::map<std::string, std::string>	elmt;
