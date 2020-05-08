@@ -2,7 +2,7 @@
 
 Handler::Handler()
 {
-	
+	assignMIME();
 }
 
 Handler::~Handler()
@@ -61,7 +61,7 @@ void			Handler::sendResponse(int fd)
 		execCGI(fd, request);
 	else
 	{
-		fillHeaders(response);
+		fillHeaders(response, request);
 		fillBody(response, request);
 		result = toString(response, request);
 		write(fd, result.c_str(), result.size());
@@ -138,7 +138,7 @@ bool			Handler::checkSyntax(const Request &req)
 	return (true);
 }
 
-void			Handler::fillHeaders(Response &response)
+void			Handler::fillHeaders(Response &res, Request &req)
 {
 	struct timeval	time;
 	struct tm		*tm;
@@ -149,8 +149,20 @@ void			Handler::fillHeaders(Response &response)
 	tm = localtime(&time.tv_sec);
 	ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
 	buf[ret] = '\0';
-	response.headers["Date"] = buf;
-	response.headers["Server"] = "webserv";
+	res.headers["Date"] = buf;
+	res.headers["Server"] = "webserv";
+	res.headers["Content-Type"] = findType(req);
+}
+
+std::string		Handler::findType(Request &req)
+{
+	std::string 	extension;
+
+	extension = req.uri.substr(req.uri.find_last_of('.'));
+	if (MIMETypes.find(extension) != MIMETypes.end())
+		return (MIMETypes[extension]);
+	else
+		return (MIMETypes[".bin"]);
 }
 
 void			Handler::parseHeaders(std::stringstream &buf, Request &req)
@@ -258,4 +270,23 @@ void				Handler::freeAll(char **args, char **env)
 		++i;
 	}
 	free(env);
+}
+
+void				Handler::assignMIME()
+{
+	MIMETypes[".txt"] = "text/plain";
+	MIMETypes[".bin"] = "application/octet-stream";
+	MIMETypes[".jpeg"] = "image/jpeg";
+	MIMETypes[".jpg"] = "image/jpeg";
+	MIMETypes[".html"] = "text/html";
+	MIMETypes[".htm"] = "text/html";
+	MIMETypes[".png"] = "image/png";
+	MIMETypes[".bmp"] = "image/bmp";
+	MIMETypes[".pdf"] = "application/pdf";
+	MIMETypes[".tar"] = "application/x-tar";
+	MIMETypes[".json"] = "application/json";
+	MIMETypes[".css"] = "text/css";
+	MIMETypes[".js"] = "application/javascript";
+	MIMETypes[".mp3"] = "audio/mpeg";
+	MIMETypes[".avi"] = "video/x-msvideo";
 }

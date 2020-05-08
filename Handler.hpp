@@ -42,6 +42,8 @@ class Handler
 			std::string							body;
 		};
 
+		std::map<std::string, std::string> MIMETypes;
+
 	public:
 		Handler();
 		~Handler();
@@ -56,12 +58,14 @@ class Handler
 		void			fillBody(Response &response, Request req);
 		std::string		toString(const Response &response, Request req);
 		bool			checkSyntax(const Request &request);
-		void			fillHeaders(Response &response);
+		void			fillHeaders(Response &res, Request &req);
+		std::string		findType(Request &req);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			parseBody(std::stringstream &buf, Request &req);
 		char			**setEnv(Request &req);
 		void			execCGI(int fd, Request &req);
 		void			freeAll(char **args, char **env);
+		void			assignMIME();
 
 };
 

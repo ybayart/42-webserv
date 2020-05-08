@@ -47,7 +47,7 @@ int		Config::parse(char *file)
 			if (getContent(is, context, line) == -1)
 				return (-1);
 	}
-	return (0);
+	return (checkContent());
 }
 
 int		Config::getContent(std::stringstream &is, std::string &context, std::string prec)
@@ -92,6 +92,14 @@ int		Config::getContent(std::stringstream &is, std::string &context, std::string
 		}
 	}
 	if (line != "}")
+		return (-1);
+	return (0);
+}
+
+//TO COMPLETE
+int		Config::checkContent()
+{
+	if (_elmts.find("server|") == _elmts.end())
 		return (-1);
 	return (0);
 }

@@ -1,4 +1,4 @@
-#ifndef CONFIG_HPP
+ #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
 #include <fcntl.h>
@@ -29,6 +29,7 @@ class Config
 	private:
 		std::string	readFile(char *file);
 		int			getContent(std::stringstream &is, std::string &context, std::string prec);
+		int			checkContent();
 };
 
 #endif
