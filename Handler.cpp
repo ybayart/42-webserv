@@ -21,9 +21,30 @@ void			Handler::parseRequest(int fd, std::string req)
 	std::getline(is, request.version,  '\n');
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
-	if (request.valid && request.method == "POST")
+	if (request.valid && (request.method == "POST" || request.method == "PUT"))
 		parseBody(is, request);
 	_requests[fd] = request;
+}
+
+void			Handler::sendResponse(int fd, Config &conf)
+{
+	std::string		result;
+	Request			request;
+	Response		response;
+	std::string		CGIext;
+
+	request = _requests[fd];
+	sendStatusCode(fd, request, response, conf);
+	if (request.valid && request.uri.find(".cgi") != std::string::npos)
+		execCGI(fd, request, conf);
+	else
+	{
+		fillHeaders(response, request);
+		fillBody(response, request, conf);
+		result = toString(response, request);
+		write(fd, result.c_str(), result.size());
+	}
+	_requests.erase(fd);
 }
 
 void			Handler::sendStatusCode(int fd, Request &req, Response &res, Config &conf)
@@ -38,7 +59,10 @@ void			Handler::sendStatusCode(int fd, Request &req, Response &res, Config &conf
 	else
 	{
 		path = findPath(req.uri, conf);
-		file_fd = open(path.c_str(), O_RDONLY);
+		if (req.method == 'PUT')
+			file_fd = open(path.c_str, O_WRONLY | O_CREAT, 0644);
+		else
+			file_fd = open(path.c_str(), O_RDONLY);
 		if (file_fd == -1)
 			res.status_code = NOTFOUND;
 		else
@@ -61,27 +85,10 @@ std::string 	Handler::findPath(std::string uri, Config &conf)
 		directory = "/";
 	if (conf._elmts["server|location " + directory + "|"].find("root") != conf._elmts["server|location " + directory + "|"].end())
 		path = conf._elmts["server|location " + directory + "|"]["root"] + file;
-	return (path);
-}
-
-void			Handler::sendResponse(int fd, Config &conf)
-{
-	std::string		result;
-	Request			request;
-	Response		response;
-
-	request = _requests[fd];
-	sendStatusCode(fd, request, response, conf);
-	if (request.valid && request.uri.find(".cgi") != std::string::npos)
-		execCGI(fd, request, conf);
 	else
-	{
-		fillHeaders(response, request);
-		fillBody(response, request, conf);
-		result = toString(response, request);
-		write(fd, result.c_str(), result.size());
-	}
-	_requests.erase(fd);
+		path = directory.substr(1) + file;
+	std::cout << "path: " << path << std::endl;
+	return (path);
 }
 
 std::string		Handler::toString(const Response &response, Request req)
@@ -142,7 +149,7 @@ bool			Handler::checkSyntax(const Request &req)
 		|| req.version.size() == 0)
 		return (false);
 	if (req.method != "GET" && req.method != "POST"
-		&& req.method != "HEAD")
+		&& req.method != "HEAD" && req.method != "PUT")
 		return (false);
 	if (req.uri[0] != '/')
 		return (false);
