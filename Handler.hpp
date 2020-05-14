@@ -27,12 +27,14 @@ class Handler
 	public:
 		struct Request
 		{
+			int									fd;
 			bool								valid;
 			std::string							method;
 			std::string							uri;
 			std::string							version;
 			std::map<std::string, std::string> 	headers;
 			std::string							body;
+			std::map<std::string, std::string> 	conf;
 		};
 
 		struct Response
@@ -49,26 +51,36 @@ class Handler
 		Handler();
 		~Handler();
 
-		void			parseRequest(int fd, std::string buf);
-		void			sendResponse(int fd, Config &conf);
+		void			parseRequest(int fd, std::string buf, Config &conf);
+		void			sendResponse(int fd);
 
 	private:
 		std::map<int, Request>	_requests;
 		Config					_conf;
 
-		void			sendStatusCode(int fd, Request &req, Response &res, Config &conf);
-		void			fillBody(Response &response, Request &req, Config &conf);
-		std::string		toString(const Response &response, Request req);
+		void			assignMIME();
+		void			getConf(Request &req, Config &conf);
+		void			dispatcher(Request &req);
+		void			handleBadRequest(Request &req);
+
+		void			handleGet(Request &req, Response &res);
+		void			handleHead(Request &req, Response &res);
+		void			handlePost(Request &req, Response &res);
+		void			handlePut(Request &req, Response &res);
+
+		std::string		getDate();
+		std::string		getLastModified(std::string path);
+		void			writeStatus(int fd, Response &res);
+		void			fillBody(Response &response, Request &req);
+		std::string		toString(const Response &response);
 		bool			checkSyntax(const Request &request);
 		void			fillHeaders(Response &res, Request &req);
 		std::string		findType(Request &req);
-		std::string		findPath(std::string uri, Config &conf);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			parseBody(std::stringstream &buf, Request &req);
 		char			**setEnv(Request &req);
-		void			execCGI(int fd, Request &req, Config &conf);
+		void			execCGI(Request &req);
 		void			freeAll(char **args, char **env);
-		void			assignMIME();
 
 };
 

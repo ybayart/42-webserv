@@ -63,7 +63,7 @@ void	Listener::sendResponse(int fd)
 {
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
-		_handler.sendResponse(fd, _conf);
+		_handler.sendResponse(fd);
 		close(fd);
 		FD_CLR(fd, &_wSet);
 	}
@@ -109,10 +109,11 @@ void	Listener::readRequest(int fd)
 		buf[bytes] = '\0';
 		result = buf;
 	}
+	std::cout << "bytes: " << bytes << std::endl;
 	std::cout << "[" + result + "]" << std::endl;
 	if (result != "")
 	{
-		_handler.parseRequest(fd, result);
+		_handler.parseRequest(fd, result, _conf);
 		FD_CLR(fd, &_rSet);
 		FD_SET(fd, &_wSet);
 	}

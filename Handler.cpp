@@ -10,88 +10,179 @@ Handler::~Handler()
 	
 }
 
-void			Handler::parseRequest(int fd, std::string req)
+void			Handler::parseRequest(int fd, std::string req, Config &conf)
 {
 	Request				request;
 	std::stringstream	is;
 
+	request.fd = fd;
 	is << req;
 	std::getline(is, request.method, ' ');
 	std::getline(is, request.uri, ' ');
 	std::getline(is, request.version,  '\n');
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
-	if (request.valid && (request.method == "POST" || request.method == "PUT"))
-		parseBody(is, request);
+	if (request.valid)
+	{
+		getConf(request, conf);
+		if (request.method == "POST" || request.method == "PUT")
+			parseBody(is, request);
+	}
+	else
+		handleBadRequest(request);
 	_requests[fd] = request;
 }
 
-void			Handler::sendResponse(int fd, Config &conf)
+void			Handler::handleBadRequest(Request &req)
 {
+	char			buf[4096];
+	int				ret;
+	int				fd;
 	std::string		result;
-	Request			request;
-	Response		response;
-	std::string		CGIext;
+	Response		res;
 
-	request = _requests[fd];
-	sendStatusCode(fd, request, response, conf);
-	if (request.valid && request.uri.find(".cgi") != std::string::npos)
-		execCGI(fd, request, conf);
+	res.version = "HTTP/1.1";
+	res.status_code = BADREQUEST;
+	writeStatus(req.fd, res);
+	res.headers["Date"] = getDate();
+	res.headers["Server"] = "webserv";
+	fd = open("errorPages/400.html", O_RDONLY);
+	while ((ret = read(fd, buf, 4095)) > 0)
+	{
+		buf[ret] = '\0';
+		result += buf;
+	}
+	close(fd);
+	res.headers["Content-Length"] = std::to_string(result.size());
+	res.body = result;
+	write(req.fd, toString(res).c_str(), toString(res).size());
+}
+
+void			Handler::getConf(Request &req, Config &conf)
+{
+	std::string		directory;
+	std::string		subdir;
+	std::string		tmp;
+	std::string		file;
+	std::map<std::string, std::string> elmt;
+	struct stat		info;
+
+	directory = req.uri.substr(0, req.uri.find_last_of('/'));
+	file = req.uri.substr(req.uri.find_last_of('/'), req.uri.find('?'));
+	if (directory == "")
+		directory = "/";
+	tmp = directory;
+	if (conf._elmts.find("server|location " + req.uri + "|") != conf._elmts.end())
+	{
+		elmt = conf._elmts["server|location " + req.uri + "|"];
+		tmp = req.uri;
+	}
+	else if (conf._elmts.find("server|location " + directory + "|") != conf._elmts.end())
+		elmt = conf._elmts["server|location " + directory + "|"];
 	else
 	{
-		fillHeaders(response, request);
-		fillBody(response, request, conf);
-		result = toString(response, request);
-		write(fd, result.c_str(), result.size());
+		subdir = directory;
+		while (tmp != "/")
+		{
+			tmp = tmp.substr(0, tmp.find_last_of('/'));
+			if (tmp == "")
+				tmp = "/";
+			if (conf._elmts.find("server|location " + tmp + "|") != conf._elmts.end())
+			{
+				elmt = conf._elmts["server|location " + tmp + "|"];
+				break ;
+			}
+		}
 	}
+	if (elmt.size() > 0)
+	{
+		if (elmt.find("methods") != elmt.end())
+			req.conf["methods"] = elmt["methods"];
+		else
+			req.conf["methods"] = "GET";
+		if (elmt.find("CGI") != elmt.end())
+			req.conf["CGI"] = elmt["CGI"];
+		if (elmt.find("upload") != elmt.end())
+			req.conf["upload"] = elmt["upload"];
+		if (elmt.find("root") != elmt.end())
+			req.conf["path"] = elmt["root"] + subdir + file;
+		else
+			req.conf["path"] = directory.substr(1) + subdir + file;
+		lstat(req.conf["path"].c_str(), &info);
+		if (S_ISDIR(info.st_mode))
+		{
+			if ((elmt.find("root") != elmt.end()
+			&& req.conf["path"] == (elmt["root"] + "/"))
+			|| req.conf["path"] == tmp.substr(1))
+			{
+				if (elmt.find("default") != elmt.end())
+				{
+					if (req.conf["path"].back() != '/')
+						req.conf["path"] += "/";
+					req.conf["path"] += elmt["default"];
+				}
+			}
+			else
+				req.conf["isdir"] = "true";
+		}
+		std::cout << "path: " << req.conf["path"] << std::endl;
+	}
+}
+
+void			Handler::dispatcher(Request &req)
+{
+	Response		res;
+	std::string		result;
+	typedef void	(Handler::*ptr)(Request &req, Response &res);
+
+	ptr				ptr_array[4] = {
+		&Handler::handleGet, &Handler::handleHead, &Handler::handlePost,
+		&Handler::handlePut
+	};
+	std::string		str_array[4] = {
+		"GET", "HEAD", "POST", "PUT"
+	};
+	
+	if (req.valid)
+	{
+		for (int i = 0; i < 4; ++i)
+			if (str_array[i] == req.method)
+				(this->*ptr_array[i])(req, res);
+	}
+	// sendStatusCode(req, response);
+	// if (req.valid)
+	// {
+	// 	if (req.conf.find("CGI") != req.conf.end()
+	// 	&& req.uri.find(req.conf["CGI"]) != std::string::npos)
+	// 		execCGI(req);
+	// 	else
+	// 	{
+	// 		fillHeaders(response, req);
+	// 		if (req.method == "PUT")
+	// 			putFile(req);
+	// 		else
+	// 			fillBody(response, req);
+	// 		result = toString(response, req);
+	// 		write(req.fd, result.c_str(), result.size());
+	// 	}
+	// }
+}
+
+void			Handler::sendResponse(int fd)
+{
+	dispatcher(_requests[fd]);
 	_requests.erase(fd);
 }
 
-void			Handler::sendStatusCode(int fd, Request &req, Response &res, Config &conf)
+void			Handler::writeStatus(int fd, Response &res)
 {
-	int			file_fd = -1;
-	std::string	result;
-	std::string	path;
+	std::string		status;
 
-	res.version = "HTTP/1.1";
-	if (!req.valid)
-		res.status_code = BADREQUEST;
-	else
-	{
-		path = findPath(req.uri, conf);
-		if (req.method == 'PUT')
-			file_fd = open(path.c_str, O_WRONLY | O_CREAT, 0644);
-		else
-			file_fd = open(path.c_str(), O_RDONLY);
-		if (file_fd == -1)
-			res.status_code = NOTFOUND;
-		else
-			res.status_code = OK;
-	}
-	close(file_fd);
-	result = res.version + " " + res.status_code + "\n";
-	write(fd, result.c_str(), result.size());
+	status = res.version + " " + res.status_code + "\n";
+	write(fd, status.c_str(), status.size());
 }
 
-std::string 	Handler::findPath(std::string uri, Config &conf)
-{
-	std::string		directory;
-	std::string		file;
-	std::string 	path;
-
-	directory = uri.substr(0, uri.find_last_of('/'));
-	file = uri.substr(uri.find_last_of('/'), uri.find('?'));
-	if (directory == "")
-		directory = "/";
-	if (conf._elmts["server|location " + directory + "|"].find("root") != conf._elmts["server|location " + directory + "|"].end())
-		path = conf._elmts["server|location " + directory + "|"]["root"] + file;
-	else
-		path = directory.substr(1) + file;
-	std::cout << "path: " << path << std::endl;
-	return (path);
-}
-
-std::string		Handler::toString(const Response &response, Request req)
+std::string		Handler::toString(const Response &response)
 {
 	std::map<std::string, std::string>::const_iterator b;
 	std::string		result;
@@ -99,16 +190,46 @@ std::string		Handler::toString(const Response &response, Request req)
 	b = response.headers.begin();
 	while (b != response.headers.end())
 	{
-		result += b->first + ": " + b->second + "\n";
+		if (b->second != "")
+			result += b->first + ": " + b->second + "\n";
 		++b;
 	}
 	result += "\n";
-	if (req.method != "HEAD")
-		result += response.body;
+	result += response.body;
 	return (result);
 }
 
-void			Handler::fillBody(Response &res, Request &req, Config &conf)
+std::string			Handler::getDate()
+{
+	struct timeval	time;
+	struct tm		*tm;
+	char			buf[4096];
+	int				ret;
+
+	gettimeofday(&time, NULL);
+	tm = localtime(&time.tv_sec);
+	ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
+	buf[ret] = '\0';
+	return (buf);
+}
+
+std::string			Handler::getLastModified(std::string path)
+{
+	char		buf[4096];
+	int			ret;
+	struct tm	*tm;
+	int			fd;
+	struct stat	file_info;
+
+	fd = open(path.c_str(), O_RDONLY);
+	fstat(fd, &file_info);
+	tm = localtime(&file_info.st_mtime);
+	ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
+	buf[ret] = '\0';
+	return (buf);
+}
+
+void			Handler::fillBody(Response &res, Request &req)
 {
 	char		buf[4096];
 	std::string	result;
@@ -120,7 +241,7 @@ void			Handler::fillBody(Response &res, Request &req, Config &conf)
 
 	if (res.status_code == OK)
 	{
-		path = findPath(req.uri, conf);
+		path = req.conf["path"];
 		file_fd = open(path.c_str(), O_RDONLY);
 		fstat(file_fd, &file_info);
 		tm = localtime(&file_info.st_mtime);
@@ -181,11 +302,15 @@ std::string		Handler::findType(Request &req)
 {
 	std::string 	extension;
 
-	extension = req.uri.substr(req.uri.find_last_of('.'));
-	if (MIMETypes.find(extension) != MIMETypes.end())
-		return (MIMETypes[extension]);
-	else
-		return (MIMETypes[".bin"]);
+	if (req.uri.find_last_of('.') != std::string::npos)
+	{
+		extension = req.uri.substr(req.uri.find_last_of('.'));		
+		if (MIMETypes.find(extension) != MIMETypes.end())
+			return (MIMETypes[extension]);
+		else
+			return (MIMETypes[".bin"]);
+	}
+	return ("");
 }
 
 void			Handler::parseHeaders(std::stringstream &buf, Request &req)
@@ -201,7 +326,7 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 		if (line.find(':') != std::string::npos)
 		{
 			pos = line.find(':');
- 			req.headers[line.substr(0, pos)] = line.substr(pos, std::string::npos);
+ 			req.headers[line.substr(0, pos)] = line.substr(pos + 2, std::string::npos);
 		}
 	}
 }
@@ -217,15 +342,15 @@ void			Handler::parseBody(std::stringstream &buf, Request &req)
 	}
 }
 
-void			Handler::execCGI(int fd, Request &req, Config &conf)
+void			Handler::execCGI(Request &req)
 {
 	char			**args = NULL;
 	char			**env = NULL;
 	std::string		path;
-	int				ret = fd;
+	int				ret;
 	int				tubes[2];
 
-	path = findPath(req.uri, conf);
+	path = req.conf["path"];
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
@@ -236,7 +361,7 @@ void			Handler::execCGI(int fd, Request &req, Config &conf)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
-		dup2(fd, 1);
+		dup2(req.fd, 1);
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
