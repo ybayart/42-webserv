@@ -1,6 +1,7 @@
 DIR_O = objs
 
 SRCS = Listener.cpp \
+	Client.cpp \
 	Handler.cpp \
 	HandlerMethods.cpp \
 	Config.cpp \

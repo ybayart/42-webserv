@@ -16,19 +16,22 @@
 #include <map>
 #include "Handler.hpp"
 #include "Config.hpp"
+#include "Client.hpp"
 
 class Listener
 {
 	private:
-		int					_fd;
-		int					_maxFd;
-		struct sockaddr_in	_info;
-		fd_set				_readSet;
-		fd_set				_writeSet;
-		fd_set				_rSet;
-		fd_set				_wSet;
-		Handler				_handler;
-		Config				_conf;
+		int						_fd;
+		int						_maxFd;
+		struct sockaddr_in		_info;
+		fd_set					_readSet;
+		fd_set					_writeSet;
+		fd_set					_rSet;
+		fd_set					_wSet;
+		Handler					_handler;
+		Config					_conf;
+		std::map<int, Client*>	_clients;
+
 
 	public:
 		Listener();

@@ -61,26 +61,31 @@ void	Listener::getRequest(int fd)
 
 void	Listener::sendResponse(int fd)
 {
+	Client *client;
+
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
-		_handler.sendResponse(fd);
+		client = _clients[fd];
+		_handler.sendResponse(*client);
 		close(fd);
 		FD_CLR(fd, &_wSet);
+		_clients.erase(fd);
 	}
 }
 
 void	Listener::acceptConnection()
 {
-	int 				client;
+	int 				fd;
 	struct sockaddr_in	info;
 	socklen_t			len;
 
 	memset(&info, 0, sizeof(info));
-	client = accept(_fd, (struct sockaddr *)&info, &len);
-	fcntl(client, F_SETFL, O_NONBLOCK);
-	FD_SET(client, &_rSet);
-	if (client > _maxFd)
-		_maxFd = client;
+	fd = accept(_fd, (struct sockaddr *)&info, &len);
+	fcntl(fd, F_SETFL, O_NONBLOCK);
+	FD_SET(fd, &_rSet);
+	_clients[fd] = new Client(fd);
+	if (fd > _maxFd)
+		_maxFd = fd;
 	std::cout << "new connection from "
 	<< inet_ntoa(info.sin_addr) << ":" << htons(info.sin_port) << std::endl;
 }
@@ -88,10 +93,11 @@ void	Listener::acceptConnection()
 void	Listener::readRequest(int fd)
 {
 	int 		bytes;
-	char		buf[4096];
-	std::string	result;
+	Client		*client;
 
-	bytes = read(fd, buf, 4095);
+	client = _clients[fd];
+	bytes = read(fd, client->_rBuf + client->_rBytes, 3);
+	client->_rBytes += bytes;
 	if (bytes <= 0)
 	{
 		if (bytes == -1)
@@ -105,15 +111,11 @@ void	Listener::readRequest(int fd)
 		}
 	}
 	else
+		client->_rBuf[client->_rBytes] = '\0';
+	if (strstr(client->_rBuf, "\r\n\r\n") != NULL)
 	{
-		buf[bytes] = '\0';
-		result = buf;
-	}
-	std::cout << "bytes: " << bytes << std::endl;
-	std::cout << "[" + result + "]" << std::endl;
-	if (result != "")
-	{
-		_handler.parseRequest(fd, result, _conf);
+		std::cout << client->_rBuf << std::endl;
+		_handler.parseRequest(*client, _conf);
 		FD_CLR(fd, &_rSet);
 		FD_SET(fd, &_wSet);
 	}
