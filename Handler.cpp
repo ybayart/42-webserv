@@ -75,6 +75,7 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 	{
 		elmt = conf._elmts["server|location " + req.uri + "|"];
 		tmp = req.uri;
+		file = "/";
 	}
 	else if (conf._elmts.find("server|location " + directory + "|") != conf._elmts.end())
 		elmt = conf._elmts["server|location " + directory + "|"];
@@ -93,6 +94,7 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 			}
 		}
 	}
+	std::cout << file << std::endl;
 	if (elmt.size() > 0)
 	{
 		if (elmt.find("methods") != elmt.end())

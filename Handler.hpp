@@ -37,8 +37,6 @@ class Handler
 		void			sendResponse(Client &client);
 
 	private:
-		Config					_conf;
-
 		void			assignMIME();
 		void			getConf(Client &client, Request &req, Config &conf);
 		void			dispatcher(Client &client);
