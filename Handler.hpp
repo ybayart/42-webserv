@@ -34,13 +34,12 @@ class Handler
 		~Handler();
 
 		void			parseRequest(Client &client, Config &conf);
-		void			sendResponse(Client &client);
+		void			dispatcher(Client &client);
 
 	private:
 		void			assignMIME();
 		void			getConf(Client &client, Request &req, Config &conf);
-		void			dispatcher(Client &client);
-		void			handleBadRequest(int fd, Request &req);
+		void			handleBadRequest(int fd);
 
 		void			handleGet(Client &client, Response &res);
 		void			handleHead(Client &client, Response &res);
@@ -54,7 +53,10 @@ class Handler
 		bool			checkSyntax(const Request &request);
 		std::string		findType(Request &req);
 		void			parseHeaders(std::stringstream &buf, Request &req);
-		void			parseBody(std::stringstream &buf, Request &req);
+		void			parseBody(Client &client, Request &req);
+		void			dechunkBody(Client &client, Request &req);
+		int				ft_power(int nb, int power);
+		int				fromHexa(const char *nb);
 		char			**setEnv(Request &req);
 		void			execCGI(Client &client);
 		void			freeAll(char **args, char **env);

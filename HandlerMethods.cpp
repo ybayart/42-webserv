@@ -151,7 +151,6 @@ void	Handler::handlePost(Client &client, Response &res)
 void	Handler::handlePut(Client &client, Response &res)
 {
 	int 			fd;
-	int				len;
 	std::string		path;
 
 	res.version = "HTTP/1.1";
@@ -172,9 +171,8 @@ void	Handler::handlePut(Client &client, Response &res)
 	writeStatus(client._fd, res);
 	res.headers["Date"] = getDate();
 	res.headers["Server"] = "webserv";
-	len = atoi(client._req.headers["Content-Length"].c_str());
 	fd = open(client._conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
-	write(fd, client._req.body.c_str(), len);
+	write(fd, client._req.body.c_str(), client._req.body.size());
 	close(fd);
 	write(client._fd, toString(res).c_str(), toString(res).size());
 }

@@ -66,10 +66,13 @@ void	Listener::sendResponse(int fd)
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
 		client = _clients[fd];
-		_handler.sendResponse(*client);
-		close(fd);
-		FD_CLR(fd, &_wSet);
-		_clients.erase(fd);
+		_handler.dispatcher(*client);
+		client->setWriteState(false);
+		if (client->getWriteState() == false)
+		{
+			delete client;
+			_clients.erase(fd);
+		}
 	}
 }
 
@@ -81,9 +84,7 @@ void	Listener::acceptConnection()
 
 	memset(&info, 0, sizeof(info));
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
-	fcntl(fd, F_SETFL, O_NONBLOCK);
-	FD_SET(fd, &_rSet);
-	_clients[fd] = new Client(fd);
+	_clients[fd] = new Client(fd, &_rSet, &_wSet);
 	if (fd > _maxFd)
 		_maxFd = fd;
 	std::cout << "new connection from "
@@ -105,9 +106,8 @@ void	Listener::readRequest(int fd)
 		else
 		{
 			std::cout << "connection closed\n";
-			close(fd);
-			FD_CLR(fd, &_rSet);
-			FD_CLR(fd, &_wSet);
+			delete client;
+			_clients.erase(fd);
 		}
 	}
 	else
@@ -116,7 +116,5 @@ void	Listener::readRequest(int fd)
 	{
 		std::cout << client->_rBuf << std::endl;
 		_handler.parseRequest(*client, _conf);
-		FD_CLR(fd, &_rSet);
-		FD_SET(fd, &_wSet);
 	}
 }

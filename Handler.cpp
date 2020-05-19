@@ -25,14 +25,20 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	{
 		getConf(client, request, conf);
 		if (request.method == "POST" || request.method == "PUT")
-			parseBody(is, request);
+			parseBody(client, request);
+		client.setReadState(false);
+		client.setWriteState(true);
 	}
 	else
-		handleBadRequest(client._fd, request);
+	{
+		handleBadRequest(client._fd);
+		client.setReadState(false);
+		client.setWriteState(false);
+	}
 	client._req = request;
 }
 
-void			Handler::handleBadRequest(int fd, Request &req)
+void			Handler::handleBadRequest(int fd)
 {
 	char			buf[4096];
 	int				ret;
@@ -59,42 +65,22 @@ void			Handler::handleBadRequest(int fd, Request &req)
 
 void			Handler::getConf(Client &client, Request &req, Config &conf)
 {
-	std::string		directory;
-	std::string		subdir;
-	std::string		tmp;
-	std::string		file;
 	std::map<std::string, std::string> elmt;
+	std::string		tmp;
+	std::string 	file;
 	struct stat		info;
 
-	directory = req.uri.substr(0, req.uri.find_last_of('/'));
-	file = req.uri.substr(req.uri.find_last_of('/'), req.uri.find('?'));
-	if (directory == "")
-		directory = "/";
-	tmp = directory;
-	if (conf._elmts.find("server|location " + req.uri + "|") != conf._elmts.end())
+	file = req.uri.substr(req.uri.find_last_of('/') + 1, req.uri.find('?'));
+	tmp = req.uri;
+	do
 	{
-		elmt = conf._elmts["server|location " + req.uri + "|"];
-		tmp = req.uri;
-		file = "/";
-	}
-	else if (conf._elmts.find("server|location " + directory + "|") != conf._elmts.end())
-		elmt = conf._elmts["server|location " + directory + "|"];
-	else
-	{
-		subdir = directory;
-		while (tmp != "/")
+		if (conf._elmts.find("server|location " + tmp + "|") != conf._elmts.end())
 		{
-			tmp = tmp.substr(0, tmp.find_last_of('/'));
-			if (tmp == "")
-				tmp = "/";
-			if (conf._elmts.find("server|location " + tmp + "|") != conf._elmts.end())
-			{
-				elmt = conf._elmts["server|location " + tmp + "|"];
-				break ;
-			}
+			elmt = conf._elmts["server|location " + tmp + "|"];
+			break ;
 		}
-	}
-	std::cout << file << std::endl;
+		tmp = tmp.substr(0, tmp.find_last_of('/'));
+	} while (tmp != "");
 	if (elmt.size() > 0)
 	{
 		if (elmt.find("methods") != elmt.end())
@@ -106,28 +92,19 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 		if (elmt.find("upload") != elmt.end())
 			client._conf["upload"] = elmt["upload"];
 		if (elmt.find("root") != elmt.end())
-			client._conf["path"] = elmt["root"] + subdir + file;
+			client._conf["path"] = req.uri.replace(0, tmp.size(), elmt["root"]);
 		else
-			client._conf["path"] = directory.substr(1) + subdir + file;
-		lstat(client._conf["path"].c_str(), &info);
-		if (S_ISDIR(info.st_mode))
-		{
-			if ((elmt.find("root") != elmt.end()
-			&& client._conf["path"] == (elmt["root"] + "/"))
-			|| client._conf["path"] == tmp.substr(1))
-			{
-				if (elmt.find("default") != elmt.end())
-				{
-					if (client._conf["path"].back() != '/')
-						client._conf["path"] += "/";
-					client._conf["path"] += elmt["default"];
-				}
-			}
-			else
-				client._conf["isdir"] = "true";
-		}
-		std::cout << "path: " << client._conf["path"] << std::endl;
+			client._conf["path"] = req.uri;
 	}
+	lstat(client._conf["path"].c_str(), &info);
+	if (S_ISDIR(info.st_mode))
+	{
+		if (elmt.find("default") != elmt.end())
+			client._conf["path"] += "/" + elmt["default"];
+		else
+			client._conf["isdir"] = "true";
+	}
+	std::cout << "p: " << client._conf["path"] << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
@@ -150,11 +127,6 @@ void			Handler::dispatcher(Client &client)
 			if (str_array[i] == client._req.method)
 				(this->*ptr_array[i])(client, res);
 	}
-}
-
-void			Handler::sendResponse(Client &client)
-{
-	dispatcher(client);
 }
 
 void			Handler::writeStatus(int fd, Response &res)
@@ -263,15 +235,131 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 	}
 }
 
-void			Handler::parseBody(std::stringstream &buf, Request &req)
+void			Handler::parseBody(Client &client, Request &req)
 {
-	std::string	line;
+	std::string	tmp;
+	int		i;
+	int		to_read;
+	int		bytes;
 
-	while (!buf.eof())
+	tmp = client._rBuf;
+	tmp = tmp.substr(tmp.find("\r\n\r\n") + 4);
+	i = 0;
+	while (tmp[i])
 	{
-		std::getline(buf, line, '\n');
-		req.body += line;
+		client._rBuf[i] = tmp[i];
+		i++;
 	}
+	client._rBuf[i] = '\0';
+	if (req.headers.find("Content-Length") != req.headers.end())
+	{
+		to_read = atoi(req.headers["Content-Length"].c_str());
+		to_read -= tmp.size();
+		if (to_read < 0)
+			to_read = 0;
+		bytes = tmp.size();
+		bytes += read(client._fd, client._rBuf + bytes, to_read);
+		client._rBuf[bytes] = '\0';
+		req.body = client._rBuf; 
+		std::cout << "b: " << req.body << std::endl;
+	}
+	else if (req.headers.find("Transfer-Encoding") != req.headers.end()
+	&& req.headers["Transfer-Encoding"] == "chunked\r")
+		dechunkBody(client, req);
+}
+
+void			Handler::dechunkBody(Client &client, Request &req)
+{
+	int 		len;
+	std::string	to_convert;
+	int			bytes;
+	int			ret;
+	char		trash[2];
+
+	bytes = strlen(client._rBuf);
+	memset(client._rBuf + bytes, 0, 4096 - bytes);
+	while (strstr(client._rBuf, "\r\n") == NULL)
+	{
+		ret = read(client._fd, client._rBuf + bytes, 1);
+		bytes += ret;
+	}
+	client._rBuf[bytes] = '\0';
+	to_convert = client._rBuf;
+	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+	len = fromHexa(to_convert.c_str());
+	std::cout << "len: " << len << std::endl;
+	while (len > 0)
+	{
+		bytes = read(client._fd, client._rBuf, len);
+		client._rBuf[bytes] = '\0';
+		std::cout << "buf: " << client._rBuf << std::endl;
+		req.body += client._rBuf;
+		memset(client._rBuf, 0, 4096);
+		read(client._fd, trash, 2);
+		bytes = 0;
+		while (strstr(client._rBuf, "\r\n") == NULL)
+		{
+			std::cout << "bb\n";
+			ret = read(client._fd, client._rBuf + bytes, 1);
+			bytes += ret;
+			if (ret == 0)
+				break ;
+		}
+		client._rBuf[bytes] = '\0';
+		to_convert = client._rBuf;
+		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+		len = fromHexa(to_convert.c_str());
+		std::cout << "len: " << len << std::endl;
+	}
+}
+
+int				Handler::ft_power(int nb, int power)
+{
+	if (power < 0)
+		return (0);
+	if (power == 0)
+		return (1);
+	return (nb * ft_power(nb, power - 1));
+}
+
+int				Handler::fromHexa(const char *nb)
+{
+	char	base[17] = "0123456789abcdef";
+	char	base2[17] = "0123456789ABCDEF";
+	int		result = 0;
+	int		i;
+	int		index;
+
+	i = 0;
+	while (nb[i])
+	{
+		int j = 0;
+		while (base[j])
+		{
+			if (nb[i] == base[j])
+			{
+				index = j;
+				break ;
+			}
+			j++;
+		}
+		if (j == 16)
+		{
+			j = 0;
+			while (base2[j])
+			{
+				if (nb[i] == base2[j])
+				{
+					index = j;
+					break ;
+				}
+				j++;
+			}
+		}
+		result += index * ft_power(16, (strlen(nb) - 1) - i);
+		i++;
+	}
+	return (result);
 }
 
 void			Handler::execCGI(Client &client)
