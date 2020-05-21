@@ -127,6 +127,7 @@ void			Handler::dispatcher(Client &client)
 			if (str_array[i] == client._req.method)
 				(this->*ptr_array[i])(client, res);
 	}
+	client.setWriteState(false);
 }
 
 void			Handler::writeStatus(int fd, Response &res)
@@ -290,6 +291,15 @@ void			Handler::dechunkBody(Client &client, Request &req)
 	std::cout << "len: " << len << std::endl;
 	while (len > 0)
 	{
+		while (len >= 4096)
+		{
+			bytes = read(client._fd, client._rBuf, 4095);
+			len -= bytes;
+			client._rBuf[bytes] = '\0';
+			std::cout << "buf: " << client._rBuf << std::endl;
+			req.body += client._rBuf;
+			memset(client._rBuf, 0, 4096);
+		}
 		bytes = read(client._fd, client._rBuf, len);
 		client._rBuf[bytes] = '\0';
 		std::cout << "buf: " << client._rBuf << std::endl;
@@ -297,9 +307,9 @@ void			Handler::dechunkBody(Client &client, Request &req)
 		memset(client._rBuf, 0, 4096);
 		read(client._fd, trash, 2);
 		bytes = 0;
-		while (strstr(client._rBuf, "\r\n") == NULL)
+		while (strstr(client._rBuf, "\r\n") == NULL
+			&& strchr(client._rBuf, '\0') == NULL)
 		{
-			std::cout << "bb\n";
 			ret = read(client._fd, client._rBuf + bytes, 1);
 			bytes += ret;
 			if (ret == 0)

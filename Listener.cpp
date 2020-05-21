@@ -67,7 +67,6 @@ void	Listener::sendResponse(int fd)
 	{
 		client = _clients[fd];
 		_handler.dispatcher(*client);
-		client->setWriteState(false);
 		if (client->getWriteState() == false)
 		{
 			delete client;
