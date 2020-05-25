@@ -34,6 +34,7 @@ class Handler
 		~Handler();
 
 		void			parseRequest(Client &client, Config &conf);
+		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
 
 	private:
@@ -53,8 +54,7 @@ class Handler
 		bool			checkSyntax(const Request &request);
 		std::string		findType(Request &req);
 		void			parseHeaders(std::stringstream &buf, Request &req);
-		void			parseBody(Client &client, Request &req);
-		void			dechunkBody(Client &client, Request &req);
+		void			dechunkBody(Client &client);
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);
 		char			**setEnv(Request &req);

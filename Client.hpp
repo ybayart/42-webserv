@@ -14,6 +14,8 @@
 #include "map"
 #include "messages.h"
 
+#define BUFFER_SIZE 33000
+
 class Client
 {
 	typedef std::map<std::string, std::string> conf;
@@ -30,6 +32,7 @@ class Client
 		int			_wBytes;
 		fd_set		*_rSet;
 		fd_set		*_wSet;
+		bool		hasBody;
 
 	public:
 		Client(int fd, fd_set *r, fd_set *w);

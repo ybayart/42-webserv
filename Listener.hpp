@@ -41,8 +41,7 @@ class Listener
 		void	init();
 		int		getMaxFd() const;
 		void	select();
-		void	getRequest(int fd);
-		void	sendResponse(int fd);
+		void	handleRequest(int fd);
 
 	private:
 		void	acceptConnection();

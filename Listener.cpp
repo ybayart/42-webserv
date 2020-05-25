@@ -48,8 +48,10 @@ void	Listener::select()
 	::select(_maxFd + 1, &_readSet, &_writeSet, NULL, NULL);
 }
 
-void	Listener::getRequest(int fd)
+void	Listener::handleRequest(int fd)
 {
+	Client	*client;
+
     if (FD_ISSET(fd, &_readSet))
 	{
 		if (fd == this->_fd)
@@ -57,12 +59,6 @@ void	Listener::getRequest(int fd)
 		else
 			readRequest(fd);
 	}
-}
-
-void	Listener::sendResponse(int fd)
-{
-	Client *client;
-
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
 	{
 		client = _clients[fd];
@@ -96,24 +92,31 @@ void	Listener::readRequest(int fd)
 	Client		*client;
 
 	client = _clients[fd];
-	bytes = read(fd, client->_rBuf + client->_rBytes, 3);
-	client->_rBytes += bytes;
-	if (bytes <= 0)
+	if (client->hasBody == false)
 	{
-		if (bytes == -1)
-			std::cout << "reading error\n";
+		bytes = read(fd, client->_rBuf + client->_rBytes, 3);
+		client->_rBytes += bytes;
+		if (bytes <= 0)
+		{
+			if (bytes == -1)
+				std::cout << "reading error\n";
+			else
+			{
+				std::cout << "connection closed\n";
+				delete client;
+				_clients.erase(fd);
+			}
+		}
 		else
 		{
-			std::cout << "connection closed\n";
-			delete client;
-			_clients.erase(fd);
+			client->_rBuf[client->_rBytes] = '\0';
+			if (strstr(client->_rBuf, "\r\n\r\n") != NULL)
+			{
+				std::cout << client->_rBuf << std::endl;
+				_handler.parseRequest(*client, _conf);
+			}
 		}
 	}
 	else
-		client->_rBuf[client->_rBytes] = '\0';
-	if (strstr(client->_rBuf, "\r\n\r\n") != NULL)
-	{
-		std::cout << client->_rBuf << std::endl;
-		_handler.parseRequest(*client, _conf);
-	}
+		_handler.parseBody(*client);
 }

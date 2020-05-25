@@ -1,10 +1,12 @@
 #include "Client.hpp"
 
 Client::Client(int fd, fd_set *r, fd_set *w)
-: _fd(fd), _rBytes(0), _wBytes(0), _rSet(r), _wSet(w)
+: _fd(fd), _rBytes(0), _wBytes(0), _rSet(r), _wSet(w), hasBody(false)
 {
-	_rBuf = (char *)malloc(sizeof(char) * 4096);
-	_wBuf = (char *)malloc(sizeof(char) * 4096);
+	_rBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	_wBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	memset(_rBuf, 0, BUFFER_SIZE);
+	memset(_wBuf, 0, BUFFER_SIZE);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, _rSet);
 }

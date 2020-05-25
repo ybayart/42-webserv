@@ -27,12 +27,12 @@ void	Handler::handleGet(Client &client, Response &res)
 			res.status_code = OK;
 	}
 	writeStatus(client._fd, res);
-	if (client._conf.find("CGI") != client._conf.end()
-	&& client._req.uri.find(client._conf["CGI"]) != std::string::npos
-	&& res.status_code == OK)
-		execCGI(client);
-	else
-	{
+	// if (client._conf.find("CGI") != client._conf.end()
+	// && client._req.uri.find(client._conf["CGI"]) != std::string::npos
+	// && res.status_code == OK)
+	// 	execCGI(client);
+	// else
+	// {
 		if (res.status_code == OK)
 		{
 			res.headers["Last-Modified"] = getLastModified(path);
@@ -49,7 +49,7 @@ void	Handler::handleGet(Client &client, Response &res)
 		res.headers["Content-Length"] = std::to_string(result.size());
 		res.body = result;
 		write(client._fd, toString(res).c_str(), toString(res).size());
-	}
+	// }
 }
 
 void	Handler::handleHead(Client &client, Response &res)
@@ -163,7 +163,7 @@ void	Handler::handlePut(Client &client, Response &res)
 		if (client._conf["isdir"] == "true")
 			res.status_code = NOTFOUND;
 		else if (fd == -1)
-			res.status_code = CREATED;
+			res.status_code = NOCONTENT;
 		else
 			res.status_code = NOCONTENT;
 		close(fd);

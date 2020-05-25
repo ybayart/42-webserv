@@ -14,6 +14,8 @@ void			Handler::parseRequest(Client &client, Config &conf)
 {
 	std::stringstream	is;
 	Request				request;
+	std::string			tmp;
+	int					i;
 
 	is << client._rBuf;
 	std::getline(is, request.method, ' ');
@@ -25,9 +27,12 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	{
 		getConf(client, request, conf);
 		if (request.method == "POST" || request.method == "PUT")
-			parseBody(client, request);
-		client.setReadState(false);
-		client.setWriteState(true);
+			client.hasBody = true;
+		else
+		{
+			client.setReadState(false);
+			client.setWriteState(true);
+		}
 	}
 	else
 	{
@@ -36,11 +41,20 @@ void			Handler::parseRequest(Client &client, Config &conf)
 		client.setWriteState(false);
 	}
 	client._req = request;
+	tmp = client._rBuf;
+	tmp = tmp.substr(tmp.find("\r\n\r\n") + 4);
+	i = 0;
+	while (tmp[i])
+	{
+		client._rBuf[i] = tmp[i];
+		i++;
+	}
+	client._rBuf[i] = '\0';
 }
 
 void			Handler::handleBadRequest(int fd)
 {
-	char			buf[4096];
+	char			buf[BUFFER_SIZE];
 	int				ret;
 	int				file_fd;
 	std::string		result;
@@ -52,7 +66,7 @@ void			Handler::handleBadRequest(int fd)
 	res.headers["Date"] = getDate();
 	res.headers["Server"] = "webserv";
 	file_fd = open("errorPages/400.html", O_RDONLY);
-	while ((ret = read(file_fd, buf, 4095)) > 0)
+	while ((ret = read(file_fd, buf, BUFFER_SIZE - 1)) > 0)
 	{
 		buf[ret] = '\0';
 		result += buf;
@@ -81,6 +95,9 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 		}
 		tmp = tmp.substr(0, tmp.find_last_of('/'));
 	} while (tmp != "");
+	if (elmt.size() == 0)
+		if (conf._elmts.find("server|location /|") != conf._elmts.end())
+			elmt = conf._elmts["server|location /|"];
 	if (elmt.size() > 0)
 	{
 		if (elmt.find("methods") != elmt.end())
@@ -159,19 +176,19 @@ std::string			Handler::getDate()
 {
 	struct timeval	time;
 	struct tm		*tm;
-	char			buf[4096];
+	char			buf[BUFFER_SIZE];
 	int				ret;
 
 	gettimeofday(&time, NULL);
 	tm = localtime(&time.tv_sec);
-	ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %G %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
 
 std::string			Handler::getLastModified(std::string path)
 {
-	char		buf[4096];
+	char		buf[BUFFER_SIZE];
 	int			ret;
 	struct tm	*tm;
 	int			fd;
@@ -180,7 +197,7 @@ std::string			Handler::getLastModified(std::string path)
 	fd = open(path.c_str(), O_RDONLY);
 	fstat(fd, &file_info);
 	tm = localtime(&file_info.st_mtime);
-	ret = strftime(buf, 4095, "%a, %d %b %G %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %G %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
@@ -236,90 +253,95 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 	}
 }
 
-void			Handler::parseBody(Client &client, Request &req)
+void			Handler::parseBody(Client &client)
 {
 	std::string	tmp;
-	int		i;
-	int		to_read;
-	int		bytes;
+	int			i;
+	int			to_read;
+	int			bytes;
 
-	tmp = client._rBuf;
-	tmp = tmp.substr(tmp.find("\r\n\r\n") + 4);
-	i = 0;
-	while (tmp[i])
+	if (client._req.headers.find("Content-Length") != client._req.headers.end())
 	{
-		client._rBuf[i] = tmp[i];
-		i++;
-	}
-	client._rBuf[i] = '\0';
-	if (req.headers.find("Content-Length") != req.headers.end())
-	{
-		to_read = atoi(req.headers["Content-Length"].c_str());
-		to_read -= tmp.size();
+		to_read = atoi(client._req.headers["Content-Length"].c_str());
+		to_read -= strlen(client._rBuf);
 		if (to_read < 0)
 			to_read = 0;
-		bytes = tmp.size();
+		bytes = strlen(client._rBuf);
 		bytes += read(client._fd, client._rBuf + bytes, to_read);
 		client._rBuf[bytes] = '\0';
-		req.body = client._rBuf; 
-		std::cout << "b: " << req.body << std::endl;
+		client._req.body = client._rBuf; 
+		std::cout << "b: " << client._req.body << std::endl;
+		client.setReadState(false);
+		client.setWriteState(true);
 	}
-	else if (req.headers.find("Transfer-Encoding") != req.headers.end()
-	&& req.headers["Transfer-Encoding"] == "chunked\r")
-		dechunkBody(client, req);
+	else if (client._req.headers.find("Transfer-Encoding") != client._req.headers.end()
+	&& client._req.headers["Transfer-Encoding"] == "chunked\r")
+		dechunkBody(client);
 }
 
-void			Handler::dechunkBody(Client &client, Request &req)
+void			Handler::dechunkBody(Client &client)
 {
-	int 		len;
-	std::string	to_convert;
-	int			bytes;
-	int			ret;
-	char		trash[2];
+	static int 		len = 0;
+	std::string		to_convert;
+	int				bytes;
+	std::string		tmp;
+	static bool		found = false;
+	int				i;
 
 	bytes = strlen(client._rBuf);
-	memset(client._rBuf + bytes, 0, 4096 - bytes);
-	while (strstr(client._rBuf, "\r\n") == NULL)
-	{
-		ret = read(client._fd, client._rBuf + bytes, 1);
-		bytes += ret;
-	}
+	memset(client._rBuf + bytes, 0, BUFFER_SIZE - bytes);
+	bytes += read(client._fd, client._rBuf + bytes, len + 2);
 	client._rBuf[bytes] = '\0';
-	to_convert = client._rBuf;
-	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
-	len = fromHexa(to_convert.c_str());
-	std::cout << "len: " << len << std::endl;
-	while (len > 0)
+	if (strstr(client._rBuf, "\r\n") && found == false)
 	{
-		while (len >= 4096)
-		{
-			bytes = read(client._fd, client._rBuf, 4095);
-			len -= bytes;
-			client._rBuf[bytes] = '\0';
-			std::cout << "buf: " << client._rBuf << std::endl;
-			req.body += client._rBuf;
-			memset(client._rBuf, 0, 4096);
-		}
-		bytes = read(client._fd, client._rBuf, len);
-		client._rBuf[bytes] = '\0';
-		std::cout << "buf: " << client._rBuf << std::endl;
-		req.body += client._rBuf;
-		memset(client._rBuf, 0, 4096);
-		read(client._fd, trash, 2);
-		bytes = 0;
-		while (strstr(client._rBuf, "\r\n") == NULL
-			&& strchr(client._rBuf, '\0') == NULL)
-		{
-			ret = read(client._fd, client._rBuf + bytes, 1);
-			bytes += ret;
-			if (ret == 0)
-				break ;
-		}
-		client._rBuf[bytes] = '\0';
 		to_convert = client._rBuf;
 		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
 		len = fromHexa(to_convert.c_str());
-		std::cout << "len: " << len << std::endl;
+		std::cout << "l: " << len << std::endl;
+		if (len == 0)
+		{
+			memset(client._rBuf, 0, BUFFER_SIZE);
+			client.setReadState(false);
+			client.setWriteState(true);
+			found = false;
+		}
+		else
+		{
+			tmp = client._rBuf;
+			tmp = tmp.substr(tmp.find("\r\n") + 2);
+			i = 0;
+			while (tmp[i])
+			{
+				client._rBuf[i] = tmp[i];
+				i++;
+			}
+			client._rBuf[i] = '\0';
+			found = true;
+		}
+	}
+	else if (found == true)
+	{
+		tmp = client._rBuf;
+		if (tmp.size() > len)
+		{
+			client._req.body += tmp.substr(0, len);
+			tmp = tmp.substr(len + 1);
+			i = 0;
+			while (tmp[i])
+			{
+				client._rBuf[i] = tmp[i];
+				i++;
+			}
+			client._rBuf[i] = '\0';
+			len = 0;
+			found = false;
+		}
+		else
+		{
+			client._req.body += tmp;
+			len -= tmp.size();
+			memset(client._rBuf, 0, BUFFER_SIZE);
+		}
 	}
 }
 
@@ -379,8 +401,10 @@ void			Handler::execCGI(Client &client)
 	std::string		path;
 	int				ret;
 	int				tubes[2];
+	int				bytes;
 
-	path = client._conf["path"];
+	// path = client._conf["path"];
+	path = "cgi_tester";
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
@@ -413,10 +437,10 @@ char			**Handler::setEnv(Request &req)
 	envMap["CONTENT_LENGTH"] = std::to_string(req.body.size());
 	// envMap["CONTENT_TYPE"] = "text/html";
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-	// envMap["PATH_INFO"] = req.uri.substr(req.uri.find(".cgi") + 1, req.uri.find('?') - 1);
-	// envMap["PATH_TRANSLATED"] = "";
+	envMap["PATH_INFO"] = req.uri;
+	envMap["PATH_TRANSLATED"] = "";
 	envMap["QUERY_STRING"] = req.uri.substr(req.uri.find('?') + 1);
-	// envMap["SCRIPT_NAME"] = req.uri.substr();
+	envMap["SCRIPT_NAME"] = "cgi_tester";
 	envMap["SERVER_NAME"] = "localhost";
 	envMap["SERVER_PORT"] = "8080";
 	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
