@@ -15,9 +15,8 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	std::stringstream	is;
 	Request				request;
 	std::string			tmp;
-	int					i;
 
-	is << client._rBuf;
+	is << client.rBuf;
 	std::getline(is, request.method, ' ');
 	std::getline(is, request.uri, ' ');
 	std::getline(is, request.version,  '\n');
@@ -27,7 +26,13 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	{
 		getConf(client, request, conf);
 		if (request.method == "POST" || request.method == "PUT")
+		{
 			client.hasBody = true;
+			if (request.method == "PUT"
+			&& client.conf["isdir"] != "true"
+			&& client.conf["methods"].find(client.req.method) != std::string::npos)
+				client.fileFd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
+		}
 		else
 		{
 			client.setReadState(false);
@@ -36,45 +41,14 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	}
 	else
 	{
-		handleBadRequest(client._fd);
+		request.method = "BAD";
 		client.setReadState(false);
-		client.setWriteState(false);
+		client.setWriteState(true);
 	}
-	client._req = request;
-	tmp = client._rBuf;
+	client.req = request;
+	tmp = client.rBuf;
 	tmp = tmp.substr(tmp.find("\r\n\r\n") + 4);
-	i = 0;
-	while (tmp[i])
-	{
-		client._rBuf[i] = tmp[i];
-		i++;
-	}
-	client._rBuf[i] = '\0';
-}
-
-void			Handler::handleBadRequest(int fd)
-{
-	char			buf[BUFFER_SIZE];
-	int				ret;
-	int				file_fd;
-	std::string		result;
-	Response		res;
-
-	res.version = "HTTP/1.1";
-	res.status_code = BADREQUEST;
-	writeStatus(fd, res);
-	res.headers["Date"] = getDate();
-	res.headers["Server"] = "webserv";
-	file_fd = open("errorPages/400.html", O_RDONLY);
-	while ((ret = read(file_fd, buf, BUFFER_SIZE - 1)) > 0)
-	{
-		buf[ret] = '\0';
-		result += buf;
-	}
-	close(file_fd);
-	res.headers["Content-Length"] = std::to_string(result.size());
-	res.body = result;
-	write(fd, toString(res).c_str(), toString(res).size());
+	strcpy(client.rBuf, tmp.c_str());
 }
 
 void			Handler::getConf(Client &client, Request &req, Config &conf)
@@ -101,75 +75,76 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 	if (elmt.size() > 0)
 	{
 		if (elmt.find("methods") != elmt.end())
-			client._conf["methods"] = elmt["methods"];
+			client.conf["methods"] = elmt["methods"];
 		else
-			client._conf["methods"] = "GET";
+			client.conf["methods"] = "GET";
 		if (elmt.find("CGI") != elmt.end())
-			client._conf["CGI"] = elmt["CGI"];
+			client.conf["CGI"] = elmt["CGI"];
+		if (elmt.find("exec") != elmt.end())
+			client.conf["exec"] = elmt["exec"];
 		if (elmt.find("upload") != elmt.end())
-			client._conf["upload"] = elmt["upload"];
+			client.conf["upload"] = elmt["upload"];
 		if (elmt.find("root") != elmt.end())
-			client._conf["path"] = req.uri.replace(0, tmp.size(), elmt["root"]);
+			client.conf["path"] = req.uri.replace(0, tmp.size(), elmt["root"]);
 		else
-			client._conf["path"] = req.uri;
+			client.conf["path"] = req.uri;
 	}
-	lstat(client._conf["path"].c_str(), &info);
+	lstat(client.conf["path"].c_str(), &info);
 	if (S_ISDIR(info.st_mode))
 	{
 		if (elmt.find("default") != elmt.end())
-			client._conf["path"] += "/" + elmt["default"];
+			client.conf["path"] += "/" + elmt["default"];
 		else
-			client._conf["isdir"] = "true";
+			client.conf["isdir"] = "true";
 	}
-	std::cout << "p: " << client._conf["path"] << std::endl;
+	std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
 {
-	Response		res;
 	std::string		result;
-	typedef void	(Handler::*ptr)(Client &client, Response &res);
+	typedef void	(Handler::*ptr)(Client &client);
 
-	ptr				ptr_array[4] = {
+	ptr				ptr_array[5] = {
 		&Handler::handleGet, &Handler::handleHead, &Handler::handlePost,
-		&Handler::handlePut
+		&Handler::handlePut, &Handler::handleBadRequest
 	};
-	std::string		str_array[4] = {
-		"GET", "HEAD", "POST", "PUT"
+	std::string		str_array[5] = {
+		"GET", "HEAD", "POST", "PUT", "BAD"
 	};
 	
-	if (client._req.valid)
+	if (client.req.valid)
 	{
-		for (int i = 0; i < 4; ++i)
-			if (str_array[i] == client._req.method)
-				(this->*ptr_array[i])(client, res);
+		for (int i = 0; i < 5; ++i)
+			if (str_array[i] == client.req.method)
+				(this->*ptr_array[i])(client);
 	}
-	client.setWriteState(false);
 }
 
-void			Handler::writeStatus(int fd, Response &res)
+void			Handler::fillStatus(Client &client)
 {
 	std::string		status;
 
-	status = res.version + " " + res.status_code + "\n";
-	write(fd, status.c_str(), status.size());
+	status = client.res.version + " " + client.res.status_code + "\r\n";
+	strcpy(client.wBuf, status.c_str());
+	client.status = HEADERS;
 }
 
-std::string		Handler::toString(const Response &response)
+void			Handler::fillHeaders(Client &client)
 {
-	std::map<std::string, std::string>::const_iterator b;
 	std::string		result;
+	std::map<std::string, std::string>::const_iterator b;
 
-	b = response.headers.begin();
-	while (b != response.headers.end())
+	b = client.res.headers.begin();
+	while (b != client.res.headers.end())
 	{
 		if (b->second != "")
-			result += b->first + ": " + b->second + "\n";
+			result += b->first + ": " + b->second + "\r\n";
 		++b;
 	}
-	result += "\n";
-	result += response.body;
-	return (result);
+	result += "\r\n";
+	strcpy(client.wBuf, result.c_str());
+	client.status = BODY;
 }
 
 std::string			Handler::getDate()
@@ -191,11 +166,9 @@ std::string			Handler::getLastModified(std::string path)
 	char		buf[BUFFER_SIZE];
 	int			ret;
 	struct tm	*tm;
-	int			fd;
 	struct stat	file_info;
 
-	fd = open(path.c_str(), O_RDONLY);
-	fstat(fd, &file_info);
+	lstat(path.c_str(), &file_info);
 	tm = localtime(&file_info.st_mtime);
 	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %G %T %Z", tm);
 	buf[ret] = '\0';
@@ -260,22 +233,24 @@ void			Handler::parseBody(Client &client)
 	int			to_read;
 	int			bytes;
 
-	if (client._req.headers.find("Content-Length") != client._req.headers.end())
+	if (client.req.headers.find("Content-Length") != client.req.headers.end())
 	{
-		to_read = atoi(client._req.headers["Content-Length"].c_str());
-		to_read -= strlen(client._rBuf);
+		to_read = atoi(client.req.headers["Content-Length"].c_str());
+		to_read -= strlen(client.rBuf);
 		if (to_read < 0)
 			to_read = 0;
-		bytes = strlen(client._rBuf);
-		bytes += read(client._fd, client._rBuf + bytes, to_read);
-		client._rBuf[bytes] = '\0';
-		client._req.body = client._rBuf; 
-		std::cout << "b: " << client._req.body << std::endl;
+		bytes = strlen(client.rBuf);
+		bytes += read(client.fd, client.rBuf + bytes, to_read);
+		client.rBuf[bytes] = '\0';
+		// client.req.body = client.rBuf;
+		write(client.fileFd, client.rBuf, strlen(client.rBuf) + 1);
+		std::cout << "b: " << client.rBuf << std::endl;
+		close(client.fileFd);
 		client.setReadState(false);
 		client.setWriteState(true);
 	}
-	else if (client._req.headers.find("Transfer-Encoding") != client._req.headers.end()
-	&& client._req.headers["Transfer-Encoding"] == "chunked\r")
+	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
+	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
 		dechunkBody(client);
 }
 
@@ -287,60 +262,63 @@ void			Handler::dechunkBody(Client &client)
 	std::string		tmp;
 	static bool		found = false;
 	int				i;
+	int				ret;
 
-	bytes = strlen(client._rBuf);
-	memset(client._rBuf + bytes, 0, BUFFER_SIZE - bytes);
-	bytes += read(client._fd, client._rBuf + bytes, len + 2);
-	client._rBuf[bytes] = '\0';
-	if (strstr(client._rBuf, "\r\n") && found == false)
+	bytes = strlen(client.rBuf);
+	memset(client.rBuf + bytes, 0, BUFFER_SIZE - bytes);
+	ret = read(client.fd, client.rBuf + bytes, len + 2);
+	if (ret == -1)
+		return ;
+	bytes += ret;
+	client.rBuf[bytes] = '\0';
+	if (client.req.headers.find("X-Secret-Header-For-Test") != client.req.headers.end())
+		std::cout << client.rBuf << std::endl;
+	if (strstr(client.rBuf, "\r\n") && found == false)
 	{
-		to_convert = client._rBuf;
+		to_convert = client.rBuf;
 		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+		// std::cout << to_convert << ";" << std::endl;
 		len = fromHexa(to_convert.c_str());
-		std::cout << "l: " << len << std::endl;
+		// std::cout << "l: " << len << std::endl;
 		if (len == 0)
 		{
-			memset(client._rBuf, 0, BUFFER_SIZE);
+			memset(client.rBuf, 0, BUFFER_SIZE);
+			close(client.fileFd);
 			client.setReadState(false);
 			client.setWriteState(true);
+			if (client.status == CGI)
+				client.status = DONE;
 			found = false;
 		}
 		else
 		{
-			tmp = client._rBuf;
+			tmp = client.rBuf;
 			tmp = tmp.substr(tmp.find("\r\n") + 2);
-			i = 0;
-			while (tmp[i])
-			{
-				client._rBuf[i] = tmp[i];
-				i++;
-			}
-			client._rBuf[i] = '\0';
+			strcpy(client.rBuf, tmp.c_str());
 			found = true;
 		}
 	}
 	else if (found == true)
 	{
-		tmp = client._rBuf;
+		tmp = client.rBuf;
 		if (tmp.size() > len)
 		{
-			client._req.body += tmp.substr(0, len);
+			if (client.fileFd != -1)
+				write(client.fileFd, tmp.substr(0, len).c_str(), len);
+			client.req.body += tmp.substr(0, len);
 			tmp = tmp.substr(len + 1);
-			i = 0;
-			while (tmp[i])
-			{
-				client._rBuf[i] = tmp[i];
-				i++;
-			}
-			client._rBuf[i] = '\0';
+			memset(client.rBuf, 0, BUFFER_SIZE);
+			strcpy(client.rBuf, tmp.c_str());
 			len = 0;
 			found = false;
 		}
 		else
 		{
-			client._req.body += tmp;
+			if (client.fileFd != -1)
+				write(client.fileFd, tmp.c_str(), tmp.size());
+			client.req.body += tmp;
 			len -= tmp.size();
-			memset(client._rBuf, 0, BUFFER_SIZE);
+			memset(client.rBuf, 0, BUFFER_SIZE);
 		}
 	}
 }
@@ -403,19 +381,21 @@ void			Handler::execCGI(Client &client)
 	int				tubes[2];
 	int				bytes;
 
-	// path = client._conf["path"];
-	path = "cgi_tester";
+	if (client.conf.find("exec") != client.conf.end())
+		path = client.conf["exec"];
+	else
+		path = client.conf["path"];
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
-	env = setEnv(client._req);
+	env = setEnv(client);
 
 	pipe(tubes);
 	if (fork() == 0)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
-		dup2(client._fd, 1);
+		dup2(client.fd, 1);
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
@@ -424,29 +404,32 @@ void			Handler::execCGI(Client &client)
 	else
 	{
 		close(tubes[0]);
-		write(tubes[1], client._req.body.c_str(), client._req.body.size() + 1);
+		client.fileFd = tubes[1];
 	}
 	freeAll(args, env);
 }
 
-char			**Handler::setEnv(Request &req)
+char			**Handler::setEnv(Client &client)
 {
 	char								**env;
 	std::map<std::string, std::string> 	envMap;
 
-	envMap["CONTENT_LENGTH"] = std::to_string(req.body.size());
+	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
 	// envMap["CONTENT_TYPE"] = "text/html";
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-	envMap["PATH_INFO"] = req.uri;
+	envMap["PATH_INFO"] = client.req.uri;
 	envMap["PATH_TRANSLATED"] = "";
-	envMap["QUERY_STRING"] = req.uri.substr(req.uri.find('?') + 1);
-	envMap["SCRIPT_NAME"] = "cgi_tester";
+	envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
+	if (client.conf.find("exec") != client.conf.end())
+		envMap["SCRIPT_NAME"] = client.conf["exec"];
+	else
+		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
 	envMap["SERVER_NAME"] = "localhost";
 	envMap["SERVER_PORT"] = "8080";
 	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
 	envMap["SERVER_SOFTWARE"] = "webserv";
-	envMap["REQUEST_URI"] = req.uri;
-	envMap["REQUEST_METHOD"] = req.method;
+	envMap["REQUEST_URI"] = client.req.uri;
+	envMap["REQUEST_METHOD"] = client.req.method;
 
 	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
 	std::map<std::string, std::string>::iterator it = envMap.begin();

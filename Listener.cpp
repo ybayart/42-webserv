@@ -51,6 +51,7 @@ void	Listener::select()
 void	Listener::handleRequest(int fd)
 {
 	Client	*client;
+	int		bytes;
 
     if (FD_ISSET(fd, &_readSet))
 	{
@@ -63,8 +64,16 @@ void	Listener::handleRequest(int fd)
 	{
 		client = _clients[fd];
 		_handler.dispatcher(*client);
-		if (client->getWriteState() == false)
+		if (strlen(client->wBuf) > 0)
 		{
+			write(client->fd, client->wBuf, strlen(client->wBuf));
+			memset(client->wBuf, 0, BUFFER_SIZE);
+		}
+		if (client->status == DONE)
+		{
+			std::cout << "done\n";
+			bytes = read(client->fd, client->rBuf, BUFFER_SIZE);
+			std::cout << "eread: " << bytes << std::endl;
 			delete client;
 			_clients.erase(fd);
 		}
@@ -94,8 +103,8 @@ void	Listener::readRequest(int fd)
 	client = _clients[fd];
 	if (client->hasBody == false)
 	{
-		bytes = read(fd, client->_rBuf + client->_rBytes, 3);
-		client->_rBytes += bytes;
+		bytes = read(fd, client->rBuf + client->rBytes, BUFFER_SIZE - 1);
+		client->rBytes += bytes;
 		if (bytes <= 0)
 		{
 			if (bytes == -1)
@@ -109,13 +118,20 @@ void	Listener::readRequest(int fd)
 		}
 		else
 		{
-			client->_rBuf[client->_rBytes] = '\0';
-			if (strstr(client->_rBuf, "\r\n\r\n") != NULL)
+			client->rBuf[client->rBytes] = '\0';
+			if (strstr(client->rBuf, "\r\n\r\n") != NULL)
 			{
-				std::cout << client->_rBuf << std::endl;
+				std::cout << client->rBuf << std::endl;
 				_handler.parseRequest(*client, _conf);
 			}
 		}
+	}
+	else if (client->hasBody && client->conf.find("CGI") != client->conf.end()
+	&& client->req.uri.find(client->conf["CGI"]) != std::string::npos)
+	{
+		client->setReadState(false);
+		client->setWriteState(true);
+		return ;
 	}
 	else
 		_handler.parseBody(*client);

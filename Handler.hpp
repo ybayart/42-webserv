@@ -40,24 +40,24 @@ class Handler
 	private:
 		void			assignMIME();
 		void			getConf(Client &client, Request &req, Config &conf);
-		void			handleBadRequest(int fd);
 
-		void			handleGet(Client &client, Response &res);
-		void			handleHead(Client &client, Response &res);
-		void			handlePost(Client &client, Response &res);
-		void			handlePut(Client &client, Response &res);
+		void			handleGet(Client &client);
+		void			handleHead(Client &client);
+		void			handlePost(Client &client);
+		void			handlePut(Client &client);
+		void			handleBadRequest(Client &client);
 
 		std::string		getDate();
 		std::string		getLastModified(std::string path);
-		void			writeStatus(int fd, Response &res);
-		std::string		toString(const Response &response);
+		void			fillStatus(Client &client);
+		void			fillHeaders(Client &client);
 		bool			checkSyntax(const Request &request);
 		std::string		findType(Request &req);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			dechunkBody(Client &client);
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);
-		char			**setEnv(Request &req);
+		char			**setEnv(Client &client);
 		void			execCGI(Client &client);
 		void			freeAll(char **args, char **env);
 
