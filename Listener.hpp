@@ -46,6 +46,9 @@ class Listener
 	private:
 		void	acceptConnection();
 		void	readRequest(int fd);
+		void	writeResponse(int fd);
+		int		getTimeDiff(std::string start);
+
 };
 
 #endif

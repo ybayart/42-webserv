@@ -17,6 +17,8 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	std::string			tmp;
 
 	is << client.rBuf;
+	if (is.peek() == '\n')
+		is.get();
 	std::getline(is, request.method, ' ');
 	std::getline(is, request.uri, ' ');
 	std::getline(is, request.version,  '\n');
@@ -30,13 +32,14 @@ void			Handler::parseRequest(Client &client, Config &conf)
 			client.hasBody = true;
 			if (request.method == "PUT"
 			&& client.conf["isdir"] != "true"
-			&& client.conf["methods"].find(client.req.method) != std::string::npos)
+			&& client.conf["methods"].find(request.method) != std::string::npos)
 				client.fileFd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
 		}
 		else
 		{
 			client.setReadState(false);
 			client.setWriteState(true);
+			client.status = CODE;
 		}
 	}
 	else
@@ -44,6 +47,7 @@ void			Handler::parseRequest(Client &client, Config &conf)
 		request.method = "BAD";
 		client.setReadState(false);
 		client.setWriteState(true);
+		client.status = CODE;
 	}
 	client.req = request;
 	tmp = client.rBuf;
@@ -113,6 +117,7 @@ void			Handler::dispatcher(Client &client)
 		"GET", "HEAD", "POST", "PUT", "BAD"
 	};
 	
+	// std::cout << "disp: " << client.req.method << std::endl;
 	if (client.req.valid)
 	{
 		for (int i = 0; i < 5; ++i)
@@ -156,7 +161,7 @@ std::string			Handler::getDate()
 
 	gettimeofday(&time, NULL);
 	tm = localtime(&time.tv_sec);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %G %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
@@ -170,7 +175,7 @@ std::string			Handler::getLastModified(std::string path)
 
 	lstat(path.c_str(), &file_info);
 	tm = localtime(&file_info.st_mtime);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %G %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
@@ -246,6 +251,7 @@ void			Handler::parseBody(Client &client)
 		write(client.fileFd, client.rBuf, strlen(client.rBuf) + 1);
 		std::cout << "b: " << client.rBuf << std::endl;
 		close(client.fileFd);
+		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
 	}
@@ -261,6 +267,7 @@ void			Handler::dechunkBody(Client &client)
 	int				bytes;
 	std::string		tmp;
 	static bool		found = false;
+	static bool		done = 0;
 	int				i;
 	int				ret;
 
@@ -269,27 +276,32 @@ void			Handler::dechunkBody(Client &client)
 	ret = read(client.fd, client.rBuf + bytes, len + 2);
 	if (ret == -1)
 		return ;
+	if (done)
+	{
+		memset(client.rBuf, 0, BUFFER_SIZE);
+		client.hasBody = false;
+		client.setReadState(false);
+		client.setWriteState(true);
+		if (client.status == CGI)
+		{
+			close(client.fileFd);
+			client.status = STANDBY;
+		}
+		found = false;
+		done = 0;
+		return ;
+	}
 	bytes += ret;
 	client.rBuf[bytes] = '\0';
-	if (client.req.headers.find("X-Secret-Header-For-Test") != client.req.headers.end())
-		std::cout << client.rBuf << std::endl;
 	if (strstr(client.rBuf, "\r\n") && found == false)
 	{
 		to_convert = client.rBuf;
 		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
-		// std::cout << to_convert << ";" << std::endl;
+		std::cout << to_convert << ";" << std::endl;
 		len = fromHexa(to_convert.c_str());
-		// std::cout << "l: " << len << std::endl;
+		std::cout << "l: " << len << std::endl;
 		if (len == 0)
-		{
-			memset(client.rBuf, 0, BUFFER_SIZE);
-			close(client.fileFd);
-			client.setReadState(false);
-			client.setWriteState(true);
-			if (client.status == CGI)
-				client.status = DONE;
-			found = false;
-		}
+			done = 1;
 		else
 		{
 			tmp = client.rBuf;
@@ -304,7 +316,7 @@ void			Handler::dechunkBody(Client &client)
 		if (tmp.size() > len)
 		{
 			if (client.fileFd != -1)
-				write(client.fileFd, tmp.substr(0, len).c_str(), len);
+				bytes = write(client.fileFd, tmp.substr(0, len).c_str(), len);
 			client.req.body += tmp.substr(0, len);
 			tmp = tmp.substr(len + 1);
 			memset(client.rBuf, 0, BUFFER_SIZE);
@@ -315,7 +327,7 @@ void			Handler::dechunkBody(Client &client)
 		else
 		{
 			if (client.fileFd != -1)
-				write(client.fileFd, tmp.c_str(), tmp.size());
+				bytes = write(client.fileFd, tmp.c_str(), tmp.size());
 			client.req.body += tmp;
 			len -= tmp.size();
 			memset(client.rBuf, 0, BUFFER_SIZE);

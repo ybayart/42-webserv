@@ -50,9 +50,6 @@ void	Listener::select()
 
 void	Listener::handleRequest(int fd)
 {
-	Client	*client;
-	int		bytes;
-
     if (FD_ISSET(fd, &_readSet))
 	{
 		if (fd == this->_fd)
@@ -61,23 +58,7 @@ void	Listener::handleRequest(int fd)
 			readRequest(fd);
 	}
 	if (FD_ISSET(fd, &_writeSet) && fd != this->_fd)
-	{
-		client = _clients[fd];
-		_handler.dispatcher(*client);
-		if (strlen(client->wBuf) > 0)
-		{
-			write(client->fd, client->wBuf, strlen(client->wBuf));
-			memset(client->wBuf, 0, BUFFER_SIZE);
-		}
-		if (client->status == DONE)
-		{
-			std::cout << "done\n";
-			bytes = read(client->fd, client->rBuf, BUFFER_SIZE);
-			std::cout << "eread: " << bytes << std::endl;
-			delete client;
-			_clients.erase(fd);
-		}
-	}
+		writeResponse(fd);
 }
 
 void	Listener::acceptConnection()
@@ -98,16 +79,18 @@ void	Listener::acceptConnection()
 void	Listener::readRequest(int fd)
 {
 	int 		bytes;
+	int			ret;
 	Client		*client;
 
 	client = _clients[fd];
 	if (client->hasBody == false)
 	{
-		bytes = read(fd, client->rBuf + client->rBytes, BUFFER_SIZE - 1);
-		client->rBytes += bytes;
-		if (bytes <= 0)
+		bytes = strlen(client->rBuf);
+		ret = read(fd, client->rBuf + bytes, BUFFER_SIZE - 1);
+		bytes += ret;
+		if (ret <= 0)
 		{
-			if (bytes == -1)
+			if (ret == -1)
 				std::cout << "reading error\n";
 			else
 			{
@@ -118,10 +101,12 @@ void	Listener::readRequest(int fd)
 		}
 		else
 		{
-			client->rBuf[client->rBytes] = '\0';
+			client->rBuf[bytes] = '\0';
 			if (strstr(client->rBuf, "\r\n\r\n") != NULL)
 			{
-				std::cout << client->rBuf << std::endl;
+				std::cout << "[" << client->rBuf << "]" << std::endl;
+				client->status = CODE;
+				client->setWriteState(false);
 				_handler.parseRequest(*client, _conf);
 			}
 		}
@@ -131,8 +116,56 @@ void	Listener::readRequest(int fd)
 	{
 		client->setReadState(false);
 		client->setWriteState(true);
-		return ;
 	}
 	else
 		_handler.parseBody(*client);
+}
+
+void	Listener::writeResponse(int fd)
+{
+	Client	*client;
+	int		bytes;
+
+	if (_clients.find(fd) != _clients.end())
+		client = _clients[fd];
+	else
+		return ;
+	if (client->status != STANDBY)
+		_handler.dispatcher(*client);
+	if (strlen(client->wBuf) > 0)
+	{
+		write(client->fd, client->wBuf, strlen(client->wBuf));
+		std::cout << "sent : [" << client->wBuf << "]\n";
+		memset(client->wBuf, 0, BUFFER_SIZE);
+	}
+	if (client->status == STANDBY)
+	{
+		if (getTimeDiff(client->res.headers["Date"]) >= 5)
+			client->status = DONE;
+		else
+			client->setReadState(true);
+	}
+	if (client->status == DONE)
+	{
+		std::cout << "done\n";
+		delete client;
+		_clients.erase(fd);
+	}
+}
+
+int		Listener::getTimeDiff(std::string start)
+{
+	struct tm		start_tm;
+	struct tm		*now_tm;
+	struct timeval	time;
+	int				result;
+
+	strptime(start.c_str(), "%a, %d %b %Y %T", &start_tm);
+	gettimeofday(&time, NULL);
+	now_tm = localtime(&time.tv_sec);
+	result = (now_tm->tm_hour - start_tm.tm_hour) * 3600;
+	result += (now_tm->tm_min - start_tm.tm_min) * 60;
+	result += (now_tm->tm_sec - start_tm.tm_sec);
+	// std::cout << "diff: " << result << std::endl;
+	return (result);
 }

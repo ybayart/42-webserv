@@ -1,6 +1,7 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <iostream>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/ip.h>
@@ -14,7 +15,7 @@
 #include "map"
 #include "messages.h"
 
-#define BUFFER_SIZE 33000
+#define BUFFER_SIZE 99999
 
 #define CODE 	1
 #define HEADERS 2
@@ -37,7 +38,6 @@ class Client
 		t_conf 		conf;
 		char		*rBuf;
 		char		*wBuf;
-		int			rBytes;
 		fd_set		*rSet;
 		fd_set		*wSet;
 		bool		hasBody;
@@ -51,6 +51,7 @@ class Client
 		bool	getWriteState();
 		void	setReadState(bool state);
 		void	setWriteState(bool state);
+		void	setToStandBy();
 };
 
 #endif

@@ -45,12 +45,12 @@ void	Handler::handleGet(Client &client)
 	}
 	else if (client.status == BODY)
 	{
-		bytes = read(client.fileFd, client.wBuf, 4095);
+		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
 		client.wBuf[bytes] = '\0';
 		if (bytes == 0)
 		{
 			close(client.fileFd);
-			client.status = DONE;
+			client.setToStandBy();
 		}
 	}
 }
@@ -97,7 +97,7 @@ void	Handler::handleHead(Client &client)
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		fillHeaders(client);
-		client.status = DONE;
+		client.setToStandBy();
 	}
 }
 
@@ -114,6 +114,7 @@ void	Handler::handlePost(Client &client)
 		{
 			client.res.status_code = NOTALLOWED;
 			client.fileFd = open("errorPages/405.html", O_RDONLY);
+			std::cout << "fii: " << client.fileFd << std::endl;
 		}
 		else
 		{
@@ -143,7 +144,10 @@ void	Handler::handlePost(Client &client)
 		&& client.res.status_code == OK)
 		{
 			if (client.status != CGI)
+			{
+				client.res.headers["Date"] = getDate();
 				execCGI(client);
+			}
 			client.status = CGI;
 			parseBody(client);
 		}
@@ -163,12 +167,12 @@ void	Handler::handlePost(Client &client)
 	}
 	else if (client.status == BODY)
 	{
-		bytes = read(client.fileFd, client.wBuf, 4095);
+		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
 		client.wBuf[bytes] = '\0';
-		if (bytes == 0)
+		if (bytes <= 0)
 		{
 			close(client.fileFd);
-			client.status = DONE;
+			client.setToStandBy();
 		}
 	}
 }
@@ -199,7 +203,7 @@ void	Handler::handlePut(Client &client)
 		client.res.headers["Date"] = getDate();
 		client.res.headers["Server"] = "webserv";
 		fillHeaders(client);
-		client.status = DONE;
+		client.setToStandBy();
 	}
 }
 
