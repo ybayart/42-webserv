@@ -23,6 +23,7 @@
 #define DONE 	4
 #define CGI 	5
 #define STANDBY	6
+#define PARSING	7
 
 class Client
 {

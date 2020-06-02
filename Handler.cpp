@@ -17,6 +17,8 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	std::string			tmp;
 
 	is << client.rBuf;
+	if (is.peek() == '\r')
+		is.get();
 	if (is.peek() == '\n')
 		is.get();
 	std::getline(is, request.method, ' ');
@@ -30,6 +32,9 @@ void			Handler::parseRequest(Client &client, Config &conf)
 		if (request.method == "POST" || request.method == "PUT")
 		{
 			client.hasBody = true;
+			client.setWriteState(true);
+			if (request.method == "PUT")
+				client.status = PARSING;
 			if (request.method == "PUT"
 			&& client.conf["isdir"] != "true"
 			&& client.conf["methods"].find(request.method) != std::string::npos)
@@ -117,7 +122,6 @@ void			Handler::dispatcher(Client &client)
 		"GET", "HEAD", "POST", "PUT", "BAD"
 	};
 	
-	// std::cout << "disp: " << client.req.method << std::endl;
 	if (client.req.valid)
 	{
 		for (int i = 0; i < 5; ++i)
@@ -241,19 +245,28 @@ void			Handler::parseBody(Client &client)
 	if (client.req.headers.find("Content-Length") != client.req.headers.end())
 	{
 		to_read = atoi(client.req.headers["Content-Length"].c_str());
-		to_read -= strlen(client.rBuf);
-		if (to_read < 0)
-			to_read = 0;
 		bytes = strlen(client.rBuf);
-		bytes += read(client.fd, client.rBuf + bytes, to_read);
-		client.rBuf[bytes] = '\0';
-		// client.req.body = client.rBuf;
-		write(client.fileFd, client.rBuf, strlen(client.rBuf) + 1);
-		std::cout << "b: " << client.rBuf << std::endl;
-		close(client.fileFd);
+		if (bytes >= to_read)
+			memset(client.rBuf + to_read, 0, BUFFER_SIZE - to_read);
+		else
+		{
+			to_read -= bytes;
+			if (to_read < 0)
+				to_read = 0;
+			bytes += read(client.fd, client.rBuf + bytes, to_read);
+			client.rBuf[bytes] = '\0';
+		}
+		write(client.fileFd, client.rBuf, strlen(client.rBuf));
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
+		if (client.status == CGI)
+		{
+			close(client.fileFd);
+			client.setToStandBy();
+		}
+		else if (client.status == PARSING)
+			client.status = CODE;
 	}
 	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
 	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
@@ -278,15 +291,18 @@ void			Handler::dechunkBody(Client &client)
 		return ;
 	if (done)
 	{
-		memset(client.rBuf, 0, BUFFER_SIZE);
+		// memset(client.rBuf, 0, BUFFER_SIZE);
+		tmp = client.rBuf;
+		tmp = tmp.substr(tmp.find("\r\n") + 2);
+		strcpy(client.rBuf, tmp.c_str());
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
+		close(client.fileFd);
 		if (client.status == CGI)
-		{
-			close(client.fileFd);
-			client.status = STANDBY;
-		}
+			client.setToStandBy();
+		else if (client.status == PARSING)
+			client.status = CODE;
 		found = false;
 		done = 0;
 		return ;
@@ -317,7 +333,6 @@ void			Handler::dechunkBody(Client &client)
 		{
 			if (client.fileFd != -1)
 				bytes = write(client.fileFd, tmp.substr(0, len).c_str(), len);
-			client.req.body += tmp.substr(0, len);
 			tmp = tmp.substr(len + 1);
 			memset(client.rBuf, 0, BUFFER_SIZE);
 			strcpy(client.rBuf, tmp.c_str());
@@ -328,7 +343,6 @@ void			Handler::dechunkBody(Client &client)
 		{
 			if (client.fileFd != -1)
 				bytes = write(client.fileFd, tmp.c_str(), tmp.size());
-			client.req.body += tmp;
 			len -= tmp.size();
 			memset(client.rBuf, 0, BUFFER_SIZE);
 		}
@@ -392,24 +406,27 @@ void			Handler::execCGI(Client &client)
 	int				ret;
 	int				tubes[2];
 	int				bytes;
+	std::string		dir;
 
 	if (client.conf.find("exec") != client.conf.end())
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
-	args = (char **)(malloc(sizeof(char *) * 2));
-	args[0] = strdup(path.c_str());
-	args[1] = NULL;
+	args = (char **)(malloc(sizeof(char *) * 3));
+	args[0] = strdup(("../" + path).c_str());
+	args[1] = strdup(client.conf["path"].c_str());
+	args[2] = NULL;
 	env = setEnv(client);
-
 	pipe(tubes);
 	if (fork() == 0)
 	{
+		dir = client.conf["path"].substr(0, client.conf["path"].find_last_of('/'));
+		ret = chdir(dir.c_str());
 		close(tubes[1]);
 		dup2(tubes[0], 0);
 		dup2(client.fd, 1);
 		errno = 0;
-		ret = execve(path.c_str(), args, env);
+		ret = execve(("../" + path).c_str(), args, env);
 		if (ret == -1)
 			std::cout << "Error with CGI: " << strerror(errno) << std::endl;
 	}

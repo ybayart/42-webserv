@@ -114,7 +114,6 @@ void	Handler::handlePost(Client &client)
 		{
 			client.res.status_code = NOTALLOWED;
 			client.fileFd = open("errorPages/405.html", O_RDONLY);
-			std::cout << "fii: " << client.fileFd << std::endl;
 		}
 		else
 		{
@@ -136,8 +135,10 @@ void	Handler::handlePost(Client &client)
 			}
 		}
 		fillStatus(client);
+		if (client.res.status_code == OK)
+			client.status = PARSING;
 	}
-	else if (client.status == HEADERS || client.status == CGI)
+	else if (client.status == PARSING)
 	{
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
@@ -149,21 +150,22 @@ void	Handler::handlePost(Client &client)
 				execCGI(client);
 			}
 			client.status = CGI;
-			parseBody(client);
+			// parseBody(client);
+			client.setReadState(true);
 		}
-		else
+	}
+	else if (client.status == HEADERS)
+	{
+		fstat(client.fileFd, &file_info);
+		if (client.res.status_code == OK)
 		{
-			fstat(client.fileFd, &file_info);
-			if (client.res.status_code == OK)
-			{
-				client.res.headers["Last-Modified"] = getLastModified(client.conf["path"]);
-				client.res.headers["Content-Type"] = findType(client.req);
-			}
-			client.res.headers["Date"] = getDate();
-			client.res.headers["Server"] = "webserv";
-			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
-			fillHeaders(client);
+			client.res.headers["Last-Modified"] = getLastModified(client.conf["path"]);
+			client.res.headers["Content-Type"] = findType(client.req);
 		}
+		client.res.headers["Date"] = getDate();
+		client.res.headers["Server"] = "webserv";
+		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
+		fillHeaders(client);
 	}
 	else if (client.status == BODY)
 	{
@@ -183,7 +185,9 @@ void	Handler::handlePut(Client &client)
 	std::string		path;
 	struct stat	file_info;
 
-	if (client.status == CODE)
+	if (client.status == PARSING)
+		client.setReadState(true);
+	else if (client.status == CODE)
 	{
 		client.res.version = "HTTP/1.1";
 		if (client.conf["methods"].find(client.req.method) == std::string::npos)

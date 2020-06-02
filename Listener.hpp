@@ -18,6 +18,8 @@
 #include "Config.hpp"
 #include "Client.hpp"
 
+#define TIMEOUT 5
+
 class Listener
 {
 	private:

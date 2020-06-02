@@ -111,12 +111,6 @@ void	Listener::readRequest(int fd)
 			}
 		}
 	}
-	else if (client->hasBody && client->conf.find("CGI") != client->conf.end()
-	&& client->req.uri.find(client->conf["CGI"]) != std::string::npos)
-	{
-		client->setReadState(false);
-		client->setWriteState(true);
-	}
 	else
 		_handler.parseBody(*client);
 }
@@ -124,7 +118,6 @@ void	Listener::readRequest(int fd)
 void	Listener::writeResponse(int fd)
 {
 	Client	*client;
-	int		bytes;
 
 	if (_clients.find(fd) != _clients.end())
 		client = _clients[fd];
@@ -140,7 +133,7 @@ void	Listener::writeResponse(int fd)
 	}
 	if (client->status == STANDBY)
 	{
-		if (getTimeDiff(client->res.headers["Date"]) >= 5)
+		if (getTimeDiff(client->res.headers["Date"]) >= TIMEOUT)
 			client->status = DONE;
 		else
 			client->setReadState(true);
