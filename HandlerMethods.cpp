@@ -135,11 +135,11 @@ void	Handler::handlePost(Client &client)
 			}
 		}
 		fillStatus(client);
-		if (client.res.status_code == OK)
-			client.status = PARSING;
+		client.status = PARSING;
 	}
 	else if (client.status == PARSING)
 	{
+		client.setReadState(true);
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
 		&& client.res.status_code == OK)
@@ -150,9 +150,8 @@ void	Handler::handlePost(Client &client)
 				execCGI(client);
 			}
 			client.status = CGI;
-			// parseBody(client);
-			client.setReadState(true);
 		}
+		parseBody(client);
 	}
 	else if (client.status == HEADERS)
 	{

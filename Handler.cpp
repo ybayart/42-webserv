@@ -251,12 +251,14 @@ void			Handler::parseBody(Client &client)
 		else
 		{
 			to_read -= bytes;
-			if (to_read < 0)
-				to_read = 0;
-			bytes += read(client.fd, client.rBuf + bytes, to_read);
-			client.rBuf[bytes] = '\0';
+			if (to_read > 0)
+				bytes += read(client.fd, client.rBuf + bytes, to_read);
+			if (bytes > 0)
+				client.rBuf[bytes] = '\0';
 		}
+		std::cout << "b: " << client.rBuf << std::endl;
 		write(client.fileFd, client.rBuf, strlen(client.rBuf));
+		memset(client.rBuf, 0, BUFFER_SIZE);
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
@@ -266,7 +268,12 @@ void			Handler::parseBody(Client &client)
 			client.setToStandBy();
 		}
 		else if (client.status == PARSING)
-			client.status = CODE;
+		{
+			if (client.req.method == "PUT")
+				client.status = CODE;
+			else
+				client.status = HEADERS;
+		}
 	}
 	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
 	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
@@ -291,18 +298,22 @@ void			Handler::dechunkBody(Client &client)
 		return ;
 	if (done)
 	{
-		// memset(client.rBuf, 0, BUFFER_SIZE);
-		tmp = client.rBuf;
-		tmp = tmp.substr(tmp.find("\r\n") + 2);
-		strcpy(client.rBuf, tmp.c_str());
+		memset(client.rBuf, 0, BUFFER_SIZE);
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
-		close(client.fileFd);
 		if (client.status == CGI)
+		{
+			close(client.fileFd);
 			client.setToStandBy();
+		}
 		else if (client.status == PARSING)
-			client.status = CODE;
+		{
+			if (client.req.method == "PUT")
+				client.status = CODE;
+			else
+				client.status = HEADERS;
+		}
 		found = false;
 		done = 0;
 		return ;
@@ -412,21 +423,20 @@ void			Handler::execCGI(Client &client)
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
-	args = (char **)(malloc(sizeof(char *) * 3));
-	args[0] = strdup(("../" + path).c_str());
-	args[1] = strdup(client.conf["path"].c_str());
-	args[2] = NULL;
+	args = (char **)(malloc(sizeof(char *) * 2));
+	args[0] = strdup(path.c_str());
+	args[1] = NULL;
 	env = setEnv(client);
 	pipe(tubes);
 	if (fork() == 0)
 	{
-		dir = client.conf["path"].substr(0, client.conf["path"].find_last_of('/'));
-		ret = chdir(dir.c_str());
+		// dir = client.conf["path"].substr(0, client.conf["path"].find_last_of('/'));
+		// ret = chdir(dir.c_str());
 		close(tubes[1]);
 		dup2(tubes[0], 0);
 		dup2(client.fd, 1);
 		errno = 0;
-		ret = execve(("../" + path).c_str(), args, env);
+		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
 			std::cout << "Error with CGI: " << strerror(errno) << std::endl;
 	}
