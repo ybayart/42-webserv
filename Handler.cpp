@@ -2,7 +2,7 @@
 
 Handler::Handler()
 {
-	assignMIME();
+	
 }
 
 Handler::~Handler()
@@ -29,10 +29,11 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	if (request.valid)
 	{
 		getConf(client, request, conf);
+		client.setReadState(false);
+		client.setWriteState(true);
 		if (request.method == "POST" || request.method == "PUT")
 		{
 			client.hasBody = true;
-			client.setWriteState(true);
 			if (request.method == "PUT")
 				client.status = PARSING;
 			if (request.method == "PUT"
@@ -41,17 +42,11 @@ void			Handler::parseRequest(Client &client, Config &conf)
 				client.fileFd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
 		}
 		else
-		{
-			client.setReadState(false);
-			client.setWriteState(true);
 			client.status = CODE;
-		}
 	}
 	else
 	{
 		request.method = "BAD";
-		client.setReadState(false);
-		client.setWriteState(true);
 		client.status = CODE;
 	}
 	client.req = request;
@@ -149,34 +144,6 @@ void			Handler::fillHeaders(Client &client)
 	client.status = BODY;
 }
 
-std::string			Handler::getDate()
-{
-	struct timeval	time;
-	struct tm		*tm;
-	char			buf[BUFFER_SIZE];
-	int				ret;
-
-	gettimeofday(&time, NULL);
-	tm = localtime(&time.tv_sec);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
-	buf[ret] = '\0';
-	return (buf);
-}
-
-std::string			Handler::getLastModified(std::string path)
-{
-	char		buf[BUFFER_SIZE];
-	int			ret;
-	struct tm	*tm;
-	struct stat	file_info;
-
-	lstat(path.c_str(), &file_info);
-	tm = localtime(&file_info.st_mtime);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
-	buf[ret] = '\0';
-	return (buf);
-}
-
 //TO COMPLETE
 bool			Handler::checkSyntax(const Request &req)
 {
@@ -193,21 +160,6 @@ bool			Handler::checkSyntax(const Request &req)
 	if (req.headers.find("Host") == req.headers.end())
 		return (false);
 	return (true);
-}
-
-std::string		Handler::findType(Request &req)
-{
-	std::string 	extension;
-
-	if (req.uri.find_last_of('.') != std::string::npos)
-	{
-		extension = req.uri.substr(req.uri.find_last_of('.'));		
-		if (MIMETypes.find(extension) != MIMETypes.end())
-			return (MIMETypes[extension]);
-		else
-			return (MIMETypes[".bin"]);
-	}
-	return ("");
 }
 
 void			Handler::parseHeaders(std::stringstream &buf, Request &req)
@@ -251,7 +203,6 @@ void			Handler::parseBody(Client &client)
 		}
 		std::cout << "b: " << client.rBuf << std::endl;
 		write(client.fileFd, client.rBuf, strlen(client.rBuf));
-		memset(client.rBuf, 0, BUFFER_SIZE);
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
@@ -291,7 +242,6 @@ void			Handler::dechunkBody(Client &client)
 		return ;
 	if (done)
 	{
-		memset(client.rBuf, 0, BUFFER_SIZE);
 		client.hasBody = false;
 		client.setReadState(false);
 		client.setWriteState(true);
@@ -318,7 +268,7 @@ void			Handler::dechunkBody(Client &client)
 		to_convert = client.rBuf;
 		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
 		std::cout << to_convert << ";" << std::endl;
-		len = fromHexa(to_convert.c_str());
+		len = _helper.fromHexa(to_convert.c_str());
 		std::cout << "l: " << len << std::endl;
 		if (len == 0)
 			done = 1;
@@ -353,55 +303,6 @@ void			Handler::dechunkBody(Client &client)
 	}
 }
 
-int				Handler::ft_power(int nb, int power)
-{
-	if (power < 0)
-		return (0);
-	if (power == 0)
-		return (1);
-	return (nb * ft_power(nb, power - 1));
-}
-
-int				Handler::fromHexa(const char *nb)
-{
-	char	base[17] = "0123456789abcdef";
-	char	base2[17] = "0123456789ABCDEF";
-	int		result = 0;
-	int		i;
-	int		index;
-
-	i = 0;
-	while (nb[i])
-	{
-		int j = 0;
-		while (base[j])
-		{
-			if (nb[i] == base[j])
-			{
-				index = j;
-				break ;
-			}
-			j++;
-		}
-		if (j == 16)
-		{
-			j = 0;
-			while (base2[j])
-			{
-				if (nb[i] == base2[j])
-				{
-					index = j;
-					break ;
-				}
-				j++;
-			}
-		}
-		result += index * ft_power(16, (strlen(nb) - 1) - i);
-		i++;
-	}
-	return (result);
-}
-
 void			Handler::execCGI(Client &client)
 {
 	char			**args = NULL;
@@ -419,7 +320,7 @@ void			Handler::execCGI(Client &client)
 	args = (char **)(malloc(sizeof(char *) * 2));
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
-	env = setEnv(client);
+	env = _helper.setEnv(client);
 	pipe(tubes);
 	if (fork() == 0)
 	{
@@ -438,72 +339,5 @@ void			Handler::execCGI(Client &client)
 		close(tubes[0]);
 		client.fileFd = tubes[1];
 	}
-	freeAll(args, env);
-}
-
-char			**Handler::setEnv(Client &client)
-{
-	char								**env;
-	std::map<std::string, std::string> 	envMap;
-
-	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
-	// envMap["CONTENT_TYPE"] = "text/html";
-	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-	envMap["PATH_INFO"] = client.req.uri;
-	envMap["PATH_TRANSLATED"] = "";
-	envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
-	if (client.conf.find("exec") != client.conf.end())
-		envMap["SCRIPT_NAME"] = client.conf["exec"];
-	else
-		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
-	envMap["SERVER_NAME"] = "localhost";
-	envMap["SERVER_PORT"] = "8080";
-	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
-	envMap["SERVER_SOFTWARE"] = "webserv";
-	envMap["REQUEST_URI"] = client.req.uri;
-	envMap["REQUEST_METHOD"] = client.req.method;
-
-	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
-	std::map<std::string, std::string>::iterator it = envMap.begin();
-	int i = 0;
-	while (it != envMap.end())
-	{
-		env[i] = strdup((it->first + "=" + it->second).c_str());
-		++i;
-		++it;
-	}
-	env[i] = NULL;
-	return (env);
-}
-
-void				Handler::freeAll(char **args, char **env)
-{
-	free(args[0]);
-	free(args);
-	int i = 0;
-	while (env[i])
-	{
-		free(env[i]);
-		++i;
-	}
-	free(env);
-}
-
-void				Handler::assignMIME()
-{
-	MIMETypes[".txt"] = "text/plain";
-	MIMETypes[".bin"] = "application/octet-stream";
-	MIMETypes[".jpeg"] = "image/jpeg";
-	MIMETypes[".jpg"] = "image/jpeg";
-	MIMETypes[".html"] = "text/html";
-	MIMETypes[".htm"] = "text/html";
-	MIMETypes[".png"] = "image/png";
-	MIMETypes[".bmp"] = "image/bmp";
-	MIMETypes[".pdf"] = "application/pdf";
-	MIMETypes[".tar"] = "application/x-tar";
-	MIMETypes[".json"] = "application/json";
-	MIMETypes[".css"] = "text/css";
-	MIMETypes[".js"] = "application/javascript";
-	MIMETypes[".mp3"] = "audio/mpeg";
-	MIMETypes[".avi"] = "video/x-msvideo";
+	_helper.freeAll(args, env);
 }

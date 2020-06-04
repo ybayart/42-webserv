@@ -62,7 +62,7 @@ void	Client::setToStandBy()
 	status = STANDBY;
 	setReadState(false);
 	fileFd = -1;
-	// memset(rBuf, 0, BUFFER_SIZE);
+	memset(rBuf, 0, BUFFER_SIZE);
 	hasBody = false;
 	conf.clear();
 	b = res.headers.begin();

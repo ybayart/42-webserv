@@ -23,12 +23,10 @@
 #include "statusCode.h"
 #include "Config.hpp"
 #include "Client.hpp"
+#include "Helper.hpp"
 
 class Handler
 {
-	public:
-		std::map<std::string, std::string> MIMETypes;
-
 	public:
 		Handler();
 		~Handler();
@@ -38,7 +36,8 @@ class Handler
 		void			dispatcher(Client &client);
 
 	private:
-		void			assignMIME();
+		Helper	_helper;
+
 		void			getConf(Client &client, Request &req, Config &conf);
 
 		void			handleGet(Client &client);
@@ -47,19 +46,12 @@ class Handler
 		void			handlePut(Client &client);
 		void			handleBadRequest(Client &client);
 
-		std::string		getDate();
-		std::string		getLastModified(std::string path);
 		void			fillStatus(Client &client);
 		void			fillHeaders(Client &client);
 		bool			checkSyntax(const Request &request);
-		std::string		findType(Request &req);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			dechunkBody(Client &client);
-		int				ft_power(int nb, int power);
-		int				fromHexa(const char *nb);
-		char			**setEnv(Client &client);
 		void			execCGI(Client &client);
-		void			freeAll(char **args, char **env);
 
 };
 

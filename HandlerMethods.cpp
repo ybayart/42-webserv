@@ -35,10 +35,10 @@ void	Handler::handleGet(Client &client)
 		fstat(client.fileFd, &file_info);
 		if (client.res.status_code == OK)
 		{
-			client.res.headers["Last-Modified"] = getLastModified(client.conf["path"]);
-			client.res.headers["Content-Type"] = findType(client.req);
+			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
+			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
-		client.res.headers["Date"] = getDate();
+		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		fillHeaders(client);
@@ -90,10 +90,10 @@ void	Handler::handleHead(Client &client)
 		fstat(client.fileFd, &file_info);
 		if (client.res.status_code == OK)
 		{
-			client.res.headers["Last-Modified"] = getLastModified(client.conf["path"]);
-			client.res.headers["Content-Type"] = findType(client.req);
+			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
+			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
-		client.res.headers["Date"] = getDate();
+		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		fillHeaders(client);
@@ -146,7 +146,7 @@ void	Handler::handlePost(Client &client)
 		{
 			if (client.status != CGI)
 			{
-				client.res.headers["Date"] = getDate();
+				client.res.headers["Date"] = _helper.getDate();
 				execCGI(client);
 			}
 			client.status = CGI;
@@ -158,10 +158,10 @@ void	Handler::handlePost(Client &client)
 		fstat(client.fileFd, &file_info);
 		if (client.res.status_code == OK)
 		{
-			client.res.headers["Last-Modified"] = getLastModified(client.conf["path"]);
-			client.res.headers["Content-Type"] = findType(client.req);
+			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
+			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
-		client.res.headers["Date"] = getDate();
+		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		fillHeaders(client);
@@ -203,7 +203,7 @@ void	Handler::handlePut(Client &client)
 	}
 	else if (client.status == HEADERS)
 	{
-		client.res.headers["Date"] = getDate();
+		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		fillHeaders(client);
 		client.setToStandBy();
@@ -225,7 +225,7 @@ void	Handler::handleBadRequest(Client &client)
 		client.res.version = "HTTP/1.1";
 		client.res.status_code = BADREQUEST;
 		result = client.res.version + " " + client.res.status_code + "\n";
-		client.res.headers["Date"] = getDate();
+		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		b = client.res.headers.begin();

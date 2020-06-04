@@ -30,6 +30,7 @@ class Client
 	typedef std::map<std::string, std::string> t_conf;
 	friend class Listener;
 	friend class Handler;
+	friend class Helper;
 
 	private:
 		int			fd;

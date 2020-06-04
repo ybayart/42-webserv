@@ -4,6 +4,7 @@ SRCS = Listener.cpp \
 	Client.cpp \
 	Handler.cpp \
 	HandlerMethods.cpp \
+	Helper.cpp \
 	Config.cpp \
 	main.cpp
 
