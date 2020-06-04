@@ -111,23 +111,16 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 
 void			Handler::dispatcher(Client &client)
 {
-	std::string		result;
 	typedef void	(Handler::*ptr)(Client &client);
+	std::map<std::string, ptr> map;
 
-	ptr				ptr_array[5] = {
-		&Handler::handleGet, &Handler::handleHead, &Handler::handlePost,
-		&Handler::handlePut, &Handler::handleBadRequest
-	};
-	std::string		str_array[5] = {
-		"GET", "HEAD", "POST", "PUT", "BAD"
-	};
-	
-	if (client.req.valid)
-	{
-		for (int i = 0; i < 5; ++i)
-			if (str_array[i] == client.req.method)
-				(this->*ptr_array[i])(client);
-	}
+	map["GET"] = &Handler::handleGet;
+	map["HEAD"] = &Handler::handleHead;
+	map["PUT"] = &Handler::handlePut;
+	map["POST"] = &Handler::handlePost;
+	map["BAD"] = &Handler::handleBadRequest;
+
+	(this->*map[client.req.method])(client);
 }
 
 void			Handler::fillStatus(Client &client)
