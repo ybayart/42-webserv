@@ -34,6 +34,7 @@ class Client
 
 	private:
 		int			fd;
+		std::string	ip;
 		int			fileFd;
 		Request		req;
 		Response	res;
@@ -44,6 +45,7 @@ class Client
 		fd_set		*wSet;
 		bool		hasBody;
 		int			status;
+		std::string	lastDate;
 
 	public:
 		Client(int filed, fd_set *r, fd_set *w);

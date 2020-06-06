@@ -5,6 +5,7 @@ void	Handler::handleGet(Client &client)
 	struct stat	file_info;
 	int			fd;
 	int			bytes;
+	std::string	credential;
 
 	if (client.status == CODE)
 	{
@@ -14,7 +15,18 @@ void	Handler::handleGet(Client &client)
 			client.res.status_code = NOTALLOWED;
 			client.fileFd = open("errorPages/405.html", O_RDONLY);
 		}
-		else
+		else if (client.conf.find("auth") != client.conf.end())
+		{
+			client.res.status_code = UNAUTHORIZED;
+			client.fileFd = open("errorPages/401.html", O_RDONLY);
+			if (client.req.headers.find("Authorization") != client.req.headers.end())
+			{
+				credential = _helper.decode64(client.req.headers["Authorization"].c_str());
+				if (credential == client.conf["auth"])
+					client.res.status_code = OK;
+			}
+		}
+		if (client.res.status_code != NOTALLOWED && client.res.status_code != UNAUTHORIZED)
 		{
 			fd = open(client.conf["path"].c_str(), O_RDONLY);
 			if (fd == -1 || client.conf["isdir"] == "true")
@@ -38,6 +50,8 @@ void	Handler::handleGet(Client &client)
 			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
+		else if (client.res.status_code == UNAUTHORIZED)
+			client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);

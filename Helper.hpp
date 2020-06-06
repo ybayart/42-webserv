@@ -39,6 +39,7 @@ class Helper
 		int				fromHexa(const char *nb);
 		char			**setEnv(Client &client);
 		void			freeAll(char **args, char **env);
+		std::string		decode64(const char *data);
 		void			assignMIME();
 
 };

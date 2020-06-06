@@ -70,10 +70,11 @@ void	Listener::acceptConnection()
 	memset(&info, 0, sizeof(info));
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	_clients[fd] = new Client(fd, &_rSet, &_wSet);
+	_clients[fd]->ip = inet_ntoa(info.sin_addr);
 	if (fd > _maxFd)
 		_maxFd = fd;
 	std::cout << "new connection from "
-	<< inet_ntoa(info.sin_addr) << ":" << htons(info.sin_port) << std::endl;
+	<< _clients[fd]->ip << ":" << htons(info.sin_port) << std::endl;
 }
 
 void	Listener::readRequest(int fd)
@@ -105,6 +106,7 @@ void	Listener::readRequest(int fd)
 			if (strstr(client->rBuf, "\r\n\r\n") != NULL)
 			{
 				std::cout << "[" << client->rBuf << "]" << std::endl;
+				client->lastDate = _handler._helper.getDate();
 				client->status = CODE;
 				client->setWriteState(false);
 				_handler.parseRequest(*client, _conf);
@@ -118,6 +120,7 @@ void	Listener::readRequest(int fd)
 void	Listener::writeResponse(int fd)
 {
 	Client	*client;
+	int		bytes;
 
 	if (_clients.find(fd) != _clients.end())
 		client = _clients[fd];
@@ -127,13 +130,13 @@ void	Listener::writeResponse(int fd)
 		_handler.dispatcher(*client);
 	if (strlen(client->wBuf) > 0)
 	{
-		write(client->fd, client->wBuf, strlen(client->wBuf));
+		bytes = write(client->fd, client->wBuf, strlen(client->wBuf));
 		std::cout << "sent : [" << client->wBuf << "]\n";
 		memset(client->wBuf, 0, BUFFER_SIZE);
 	}
 	if (client->status == STANDBY)
 	{
-		if (getTimeDiff(client->res.headers["Date"]) >= TIMEOUT)
+		if (getTimeDiff(client->lastDate) >= TIMEOUT)
 			client->status = DONE;
 		else
 			client->setReadState(true);

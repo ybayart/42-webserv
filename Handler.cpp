@@ -55,6 +55,138 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	strcpy(client.rBuf, tmp.c_str());
 }
 
+void			Handler::parseBody(Client &client)
+{
+	std::string	tmp;
+	int			i;
+	int			to_read;
+	int			bytes;
+
+	if (client.req.headers.find("Content-Length") != client.req.headers.end())
+	{
+		to_read = atoi(client.req.headers["Content-Length"].c_str());
+		bytes = strlen(client.rBuf);
+		if (bytes >= to_read)
+			memset(client.rBuf + to_read, 0, BUFFER_SIZE - to_read);
+		else
+		{
+			to_read -= bytes;
+			if (to_read > 0)
+				bytes += read(client.fd, client.rBuf + bytes, to_read);
+			if (bytes > 0)
+				client.rBuf[bytes] = '\0';
+		}
+		std::cout << "b: " << client.rBuf << std::endl;
+		write(client.fileFd, client.rBuf, bytes);
+		client.hasBody = false;
+		client.setReadState(false);
+		client.setWriteState(true);
+		if (client.status == CGI)
+		{
+			close(client.fileFd);
+			client.setToStandBy();
+		}
+		else if (client.status == PARSING)
+		{
+			if (client.req.method == "PUT")
+				client.status = CODE;
+			else
+				client.status = HEADERS;
+		}
+	}
+	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
+	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
+		dechunkBody(client);
+}
+
+void			Handler::dechunkBody(Client &client)
+{
+	static int 		len = 0;
+	std::string		to_convert;
+	int				bytes;
+	std::string		tmp;
+	static bool		found = false;
+	static bool		done = 0;
+	int				i;
+	int				ret;
+
+	bytes = strlen(client.rBuf);
+	memset(client.rBuf + bytes, 0, BUFFER_SIZE - bytes);
+	ret = read(client.fd, client.rBuf + bytes, len + 2);
+	if (ret <= 0)
+	{
+		if (ret == 0)
+		{
+			close(client.fileFd);
+			client.status = DONE;
+			found = false;
+			done = 0;
+		}
+		return ;
+	}
+	if (done)
+	{
+		client.hasBody = false;
+		client.setReadState(false);
+		client.setWriteState(true);
+		if (client.status == CGI)
+		{
+			close(client.fileFd);
+			client.setToStandBy();
+		}
+		else if (client.status == PARSING)
+		{
+			if (client.req.method == "PUT")
+				client.status = CODE;
+			else
+				client.status = HEADERS;
+		}
+		found = false;
+		done = 0;
+		return ;
+	}
+	bytes += ret;
+	client.rBuf[bytes] = '\0';
+	if (strstr(client.rBuf, "\r\n") && found == false)
+	{
+		to_convert = client.rBuf;
+		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+		std::cout << to_convert << ";" << std::endl;
+		len = _helper.fromHexa(to_convert.c_str());
+		std::cout << "l: " << len << std::endl;
+		if (len == 0)
+			done = 1;
+		else
+		{
+			tmp = client.rBuf;
+			tmp = tmp.substr(tmp.find("\r\n") + 2);
+			strcpy(client.rBuf, tmp.c_str());
+			found = true;
+		}
+	}
+	else if (found == true)
+	{
+		tmp = client.rBuf;
+		if (tmp.size() > len)
+		{
+			if (client.fileFd != -1)
+				bytes = write(client.fileFd, tmp.substr(0, len).c_str(), len);
+			tmp = tmp.substr(len + 1);
+			memset(client.rBuf, 0, BUFFER_SIZE);
+			strcpy(client.rBuf, tmp.c_str());
+			len = 0;
+			found = false;
+		}
+		else
+		{
+			if (client.fileFd != -1)
+				bytes = write(client.fileFd, tmp.c_str(), tmp.size());
+			len -= tmp.size();
+			memset(client.rBuf, 0, BUFFER_SIZE);
+		}
+	}
+}
+
 void			Handler::getConf(Client &client, Request &req, Config &conf)
 {
 	std::map<std::string, std::string> elmt;
@@ -92,6 +224,8 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 			client.conf["path"] = req.uri.replace(0, tmp.size(), elmt["root"]);
 		else
 			client.conf["path"] = req.uri;
+		if (elmt.find("auth") != elmt.end())
+			client.conf["auth"] = elmt["auth"];
 	}
 	lstat(client.conf["path"].c_str(), &info);
 	if (S_ISDIR(info.st_mode))
@@ -176,129 +310,6 @@ void			Handler::parseHeaders(std::stringstream &buf, Request &req)
 		{
 			pos = line.find(':');
  			req.headers[line.substr(0, pos)] = line.substr(pos + 2, std::string::npos);
-		}
-	}
-}
-
-void			Handler::parseBody(Client &client)
-{
-	std::string	tmp;
-	int			i;
-	int			to_read;
-	int			bytes;
-
-	if (client.req.headers.find("Content-Length") != client.req.headers.end())
-	{
-		to_read = atoi(client.req.headers["Content-Length"].c_str());
-		bytes = strlen(client.rBuf);
-		if (bytes >= to_read)
-			memset(client.rBuf + to_read, 0, BUFFER_SIZE - to_read);
-		else
-		{
-			to_read -= bytes;
-			if (to_read > 0)
-				bytes += read(client.fd, client.rBuf + bytes, to_read);
-			if (bytes > 0)
-				client.rBuf[bytes] = '\0';
-		}
-		std::cout << "b: " << client.rBuf << std::endl;
-		write(client.fileFd, client.rBuf, strlen(client.rBuf));
-		client.hasBody = false;
-		client.setReadState(false);
-		client.setWriteState(true);
-		if (client.status == CGI)
-		{
-			close(client.fileFd);
-			client.setToStandBy();
-		}
-		else if (client.status == PARSING)
-		{
-			if (client.req.method == "PUT")
-				client.status = CODE;
-			else
-				client.status = HEADERS;
-		}
-	}
-	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
-	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
-		dechunkBody(client);
-}
-
-void			Handler::dechunkBody(Client &client)
-{
-	static int 		len = 0;
-	std::string		to_convert;
-	int				bytes;
-	std::string		tmp;
-	static bool		found = false;
-	static bool		done = 0;
-	int				i;
-	int				ret;
-
-	bytes = strlen(client.rBuf);
-	memset(client.rBuf + bytes, 0, BUFFER_SIZE - bytes);
-	ret = read(client.fd, client.rBuf + bytes, len + 2);
-	if (ret == -1)
-		return ;
-	if (done)
-	{
-		client.hasBody = false;
-		client.setReadState(false);
-		client.setWriteState(true);
-		if (client.status == CGI)
-		{
-			close(client.fileFd);
-			client.setToStandBy();
-		}
-		else if (client.status == PARSING)
-		{
-			if (client.req.method == "PUT")
-				client.status = CODE;
-			else
-				client.status = HEADERS;
-		}
-		found = false;
-		done = 0;
-		return ;
-	}
-	bytes += ret;
-	client.rBuf[bytes] = '\0';
-	if (strstr(client.rBuf, "\r\n") && found == false)
-	{
-		to_convert = client.rBuf;
-		to_convert = to_convert.substr(0, to_convert.find("\r\n"));
-		std::cout << to_convert << ";" << std::endl;
-		len = _helper.fromHexa(to_convert.c_str());
-		std::cout << "l: " << len << std::endl;
-		if (len == 0)
-			done = 1;
-		else
-		{
-			tmp = client.rBuf;
-			tmp = tmp.substr(tmp.find("\r\n") + 2);
-			strcpy(client.rBuf, tmp.c_str());
-			found = true;
-		}
-	}
-	else if (found == true)
-	{
-		tmp = client.rBuf;
-		if (tmp.size() > len)
-		{
-			if (client.fileFd != -1)
-				bytes = write(client.fileFd, tmp.substr(0, len).c_str(), len);
-			tmp = tmp.substr(len + 1);
-			memset(client.rBuf, 0, BUFFER_SIZE);
-			strcpy(client.rBuf, tmp.c_str());
-			len = 0;
-			found = false;
-		}
-		else
-		{
-			if (client.fileFd != -1)
-				bytes = write(client.fileFd, tmp.c_str(), tmp.size());
-			len -= tmp.size();
-			memset(client.rBuf, 0, BUFFER_SIZE);
 		}
 	}
 }

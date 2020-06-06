@@ -56,8 +56,6 @@ void	Client::setWriteState(bool state)
 
 void	Client::setToStandBy()
 {
-	std::map<std::string, std::string>::iterator b;
-
 	std::cout << "standing by\n";
 	status = STANDBY;
 	setReadState(false);
@@ -65,12 +63,7 @@ void	Client::setToStandBy()
 	memset(rBuf, 0, BUFFER_SIZE);
 	hasBody = false;
 	conf.clear();
-	b = res.headers.begin();
-	while (b != res.headers.end())
-	{
-		if (b->first != "Date")
-			res.headers.erase(b);
-		++b;
-	}
+	res.status_code.clear();
+	res.headers.clear();
 	req.headers.clear();
 }

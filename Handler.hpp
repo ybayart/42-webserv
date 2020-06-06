@@ -31,21 +31,20 @@ class Handler
 		Handler();
 		~Handler();
 
+		Helper	_helper;
+
 		void			parseRequest(Client &client, Config &conf);
 		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
 
 	private:
-		Helper	_helper;
-
-		void			getConf(Client &client, Request &req, Config &conf);
-
 		void			handleGet(Client &client);
 		void			handleHead(Client &client);
 		void			handlePost(Client &client);
 		void			handlePut(Client &client);
 		void			handleBadRequest(Client &client);
 
+		void			getConf(Client &client, Request &req, Config &conf);
 		void			fillStatus(Client &client);
 		void			fillHeaders(Client &client);
 		bool			checkSyntax(const Request &request);
