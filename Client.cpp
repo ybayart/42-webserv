@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int filed, fd_set *r, fd_set *w)
-: fd(filed), rSet(r), wSet(w), hasBody(false), fileFd(-1), status(CODE)
+: fd(filed), rSet(r), wSet(w), hasBody(false), fileFd(-1), status(PARSING)
 {
 	rBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
 	wBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);

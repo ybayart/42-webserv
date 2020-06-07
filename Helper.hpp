@@ -40,6 +40,7 @@ class Helper
 		char			**setEnv(Client &client);
 		void			freeAll(char **args, char **env);
 		std::string		decode64(const char *data);
+		void			negotiate(Client &client);
 		void			assignMIME();
 
 };

@@ -144,6 +144,47 @@ std::string		Helper::decode64(const char *data)
     return (str);
 }
 
+void			Helper::negotiate(Client &client)
+{
+	std::map<float, std::string> 	map;
+	std::string						language;
+	std::string						to_parse;
+	float							q;
+	std::map<float, std::string>::iterator 	b;
+
+	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
+	{
+		to_parse = client.req.headers["Accept-Language"];
+		if (to_parse.back() == '\r')
+			to_parse.pop_back();
+		while (to_parse != "")
+		{
+			language = to_parse.substr(0, to_parse.find(";"));
+			std::cout << language << "!\n";
+			to_parse = to_parse.substr(to_parse.find(";") + 1);
+			std::cout << to_parse << "!\n";
+			if (to_parse[0] == 'q')
+			{
+				to_parse = to_parse.substr(to_parse.find("="));
+				q = atof(to_parse.c_str());
+			}
+			else
+				q = 1;
+			map[q] = language;
+			if (to_parse.find(",") != std::string::npos)
+				to_parse = to_parse.substr(to_parse.find(","));
+			else
+				to_parse = "";
+		}
+		b = map.begin();
+		while (b != map.end())
+		{
+			std::cout << b->first << ":" << b->second << std::endl;
+			++b;
+		}
+	}
+}
+
 char			**Helper::setEnv(Client &client)
 {
 	char								**env;

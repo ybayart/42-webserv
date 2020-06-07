@@ -2,6 +2,7 @@
 #define LISTENER_HPP
 
 #include <iostream>
+#include <vector>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -32,23 +33,23 @@ class Listener
 		fd_set					_wSet;
 		Handler					_handler;
 		Config					_conf;
-		std::map<int, Client*>	_clients;
-
 
 	public:
+		std::vector<Client>		_clients;
+		
 		Listener();
 		~Listener();
 
 		int		config(char *file);
 		void	init();
-		int		getMaxFd() const;
 		void	select();
-		void	handleRequest(int fd);
+		void	handleRequest(std::vector<Client>::iterator it);
 
 	private:
 		void	acceptConnection();
-		void	readRequest(int fd);
-		void	writeResponse(int fd);
+		void	readRequest(std::vector<Client>::iterator it);
+		void	readBody(std::vector<Client>::iterator it);
+		void	writeResponse(std::vector<Client>::iterator it);
 		int		getTimeDiff(std::string start);
 
 };

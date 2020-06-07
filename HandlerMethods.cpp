@@ -39,6 +39,8 @@ void	Handler::handleGet(Client &client)
 				client.res.status_code = OK;
 				client.fileFd = fd;
 			}
+			if (client.res.status_code == NOTFOUND)
+				_helper.negotiate(client);
 		}
 		fillStatus(client);
 	}

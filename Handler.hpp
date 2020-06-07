@@ -49,6 +49,7 @@ class Handler
 		void			fillHeaders(Client &client);
 		bool			checkSyntax(const Request &request);
 		void			parseHeaders(std::stringstream &buf, Request &req);
+		void			getBody(Client &client);
 		void			dechunkBody(Client &client);
 		void			execCGI(Client &client);
 
