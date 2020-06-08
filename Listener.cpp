@@ -22,19 +22,24 @@ int		Listener::config(char *file)
 	return (_conf.parse(file));
 }
 
+int		Listener::getMaxFd() const
+{
+	return (_maxFd);
+}
+
 void	Listener::init()
 {
-	int port = atoi(_conf._elmts["server|"]["listen"].c_str());
+	Client	*server;
+	int		port;
 
+	port = atoi(_conf._elmts["server|"]["listen"].c_str());
 	_info.sin_family = AF_INET;
 	_info.sin_addr.s_addr = INADDR_ANY;
 	_info.sin_port = htons(port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
     listen(_fd, 5);
-	// fcntl(_fd, F_SETFL, O_NONBLOCK);
- //    FD_SET(_fd, &_rSet);
-    Client	client(_fd, &_rSet, &_wSet);
-    _clients.push_back(client);
+	server = new Client(_fd, &_rSet, &_wSet);
+	_clients[_fd] = server;
     _maxFd = _fd;
 }
 
@@ -45,34 +50,28 @@ void	Listener::select()
 	::select(_maxFd + 1, &_readSet, &_writeSet, NULL, NULL);
 }
 
-void	Listener::handleRequest(std::vector<Client>::iterator it)
+void	Listener::handleRequest(int fd)
 {
-    if (FD_ISSET(it->fd, &_readSet))
+	Client	*client;
+
+	if (_clients.find(fd) != _clients.end())
+		client = _clients[fd];
+	else
+		return ;
+    if (FD_ISSET(client->fd, &_readSet))
 	{
-		if (it->fd == this->_fd)
+		if (client->fd == this->_fd)
 			acceptConnection();
 		else
 		{
-			if (it->hasBody == false)
-				readRequest(it);
+			if (client->hasBody == false)
+				readRequest(client);
 			else
-				readBody(it);
+				readBody(client);
 		}
 	}
-	else if (FD_ISSET(it->fd, &_writeSet) && it->fd != this->_fd)
-		writeResponse(it);
-	else if (it->status == STANDBY)
-	{
-		if (getTimeDiff(it->lastDate) >= TIMEOUT)
-			it->status = DONE;
-		else
-			it->setReadState(true);
-	}
-	else if (it->status == DONE)
-	{
-		std::cout << "done\n";
-		_clients.erase(it);
-	}
+	else if (FD_ISSET(client->fd, &_writeSet) && client->fd != this->_fd)
+		writeResponse(client);
 }
 
 void	Listener::acceptConnection()
@@ -80,75 +79,89 @@ void	Listener::acceptConnection()
 	int 				fd;
 	struct sockaddr_in	info;
 	socklen_t			len;
+	Client				*newOne;
 
 	memset(&info, 0, sizeof(info));
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd > _maxFd)
 		_maxFd = fd;
-	Client	newOne(fd, &_rSet, &_wSet);
-	newOne.ip = inet_ntoa(info.sin_addr);
-	_clients.push_back(newOne);
-	std::cout << "new connection from " << newOne.ip << ":"
+	newOne = new Client(fd, &_rSet, &_wSet);
+	newOne->ip = inet_ntoa(info.sin_addr);
+	_clients[fd] = newOne;
+	std::cout << "new connection from " << newOne->ip << ":"
 	<< htons(info.sin_port) << std::endl;
 }
 
-void	Listener::readRequest(std::vector<Client>::iterator it)
+void	Listener::readRequest(Client *client)
 {
 	int 		bytes;
 	int			ret;
 
-	bytes = strlen(it->rBuf);
-	ret = read(it->fd, it->rBuf + bytes, BUFFER_SIZE - 1);
+	bytes = strlen(client->rBuf);
+	errno = 0;
+	ret = read(client->fd, client->rBuf + bytes, 2);
 	bytes += ret;
 	if (ret <= 0)
 	{
 		if (ret == -1)
-			std::cout << "reading error\n";
+			std::cout << strerror(errno) << std::endl;
 		else
 		{
 			std::cout << "connection closed\n";
-			_clients.erase(it);
+			delete client;
+			_clients.erase(client->fd);
 		}
 	}
 	else
 	{
-		it->rBuf[bytes] = '\0';
-		if (strstr(it->rBuf, "\r\n\r\n") != NULL)
+		client->rBuf[bytes] = '\0';
+		if (strstr(client->rBuf, "\r\n\r\n") != NULL)
 		{
-			std::cout << "[" << it->rBuf << "]" << std::endl;
-			it->lastDate = _handler._helper.getDate();
-			_handler.parseRequest(*it, _conf);
-			if (it->status == CODE)
+			std::cout << "[" << client->rBuf << "]" << std::endl;
+			client->lastDate = _handler._helper.getDate();
+			_handler.parseRequest(*client, _conf);
+			if (client->status == CODE)
 			{
-				it->setReadState(false);
-				it->setWriteState(true);
+				client->setReadState(false);
+				client->setWriteState(true);
 			}
 		}
 	}
 }
 
-void	Listener::readBody(std::vector<Client>::iterator it)
+void	Listener::readBody(Client *client)
 {
-	_handler.parseBody(*it);
-	if (it->status == CODE)
+	_handler.parseBody(*client);
+	if (client->status == CODE)
 	{
-		it->hasBody = false;
-		it->setReadState(false);
-		it->setWriteState(true);
+		client->hasBody = false;
+		client->setReadState(false);
+		client->setWriteState(true);
 	}
 }
 
-void	Listener::writeResponse(std::vector<Client>::iterator it)
+void	Listener::writeResponse(Client *client)
 {
 	int		bytes;
 
-	_handler.dispatcher(*it);
-	if (strlen(it->wBuf) > 0)
+	if (strlen(client->wBuf) > 0)
 	{
-		bytes = write(it->fd, it->wBuf, strlen(it->wBuf));
-		std::cout << "sent : [" << it->wBuf << "]\n";
-		memset(it->wBuf, 0, BUFFER_SIZE);
+		bytes = write(client->fd, client->wBuf, strlen(client->wBuf));
+		std::cout << "sent : [" << client->wBuf << "]\n";
+		memset(client->wBuf, 0, BUFFER_SIZE);
 	}
+	if (client->status != STANDBY)
+		_handler.dispatcher(*client);
+	else
+		if (getTimeDiff(client->lastDate) >= TIMEOUT)
+			client->status = DONE;
+	if (client->status == DONE)
+	{
+		std::cout << "done\n";
+		delete client;
+		_clients.erase(client->fd);
+	}
+
 }
 
 int		Listener::getTimeDiff(std::string start)

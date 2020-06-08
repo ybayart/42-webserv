@@ -64,10 +64,7 @@ void	Handler::handleGet(Client &client)
 		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
 		client.wBuf[bytes] = '\0';
 		if (bytes == 0)
-		{
-			close(client.fileFd);
 			client.setToStandBy();
-		}
 	}
 }
 
@@ -151,26 +148,17 @@ void	Handler::handlePost(Client &client)
 			}
 		}
 		fillStatus(client);
-		client.status = PARSING;
 	}
-	else if (client.status == PARSING)
+	else if (client.status == HEADERS)
 	{
-		client.setReadState(true);
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
 		&& client.res.status_code == OK)
 		{
-			if (client.status != CGI)
-			{
-				client.res.headers["Date"] = _helper.getDate();
-				execCGI(client);
-			}
-			client.status = CGI;
+			execCGI(client);
+			client.setToStandBy();
+			return ;
 		}
-		parseBody(client);
-	}
-	else if (client.status == HEADERS)
-	{
 		fstat(client.fileFd, &file_info);
 		if (client.res.status_code == OK)
 		{
@@ -187,10 +175,7 @@ void	Handler::handlePost(Client &client)
 		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
 		client.wBuf[bytes] = '\0';
 		if (bytes <= 0)
-		{
-			close(client.fileFd);
 			client.setToStandBy();
-		}
 	}
 }
 
@@ -200,20 +185,27 @@ void	Handler::handlePut(Client &client)
 	std::string		path;
 	struct stat	file_info;
 
-	if (client.status == PARSING)
-		client.setReadState(true);
-	else if (client.status == CODE)
+	if (client.status == CODE)
 	{
 		client.res.version = "HTTP/1.1";
 		if (client.conf["methods"].find(client.req.method) == std::string::npos)
 			client.res.status_code = NOTALLOWED;
 		else
 		{
-			ret = lstat(client.conf["path"].c_str(), &file_info);
+			ret = open(client.conf["path"].c_str(), O_RDONLY);
 			if (client.conf["isdir"] == "true")
 				client.res.status_code = NOTFOUND;
 			else
-				client.res.status_code = NOCONTENT;
+			{ 
+				if (ret == -1)
+					client.res.status_code = CREATED;
+				else
+				{
+					client.res.status_code = NOCONTENT;
+					close(ret);
+				}
+				client.fileFd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
+			}
 		}
 		fillStatus(client);
 	}
@@ -222,6 +214,10 @@ void	Handler::handlePut(Client &client)
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		fillHeaders(client);
+	}
+	else if (client.status == BODY)
+	{
+		write(client.fileFd, client.req.body.c_str(), client.req.body.size());
 		client.setToStandBy();
 	}
 }
@@ -265,8 +261,6 @@ void	Handler::handleBadRequest(Client &client)
 	{
 		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
 		client.wBuf[bytes] = '\0';
-		close(client.fileFd);
 		client.status = DONE;
-		client.setWriteState(false);
 	}
 }

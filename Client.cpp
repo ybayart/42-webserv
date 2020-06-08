@@ -16,6 +16,7 @@ Client::~Client()
 	free(rBuf);
 	free(wBuf);
 	close(fd);
+	close(fileFd);
 	if (FD_ISSET(fd, rSet))
 		FD_CLR(fd, rSet);
 	if (FD_ISSET(fd, wSet))
@@ -58,11 +59,13 @@ void	Client::setToStandBy()
 {
 	std::cout << "standing by\n";
 	status = STANDBY;
-	setReadState(false);
+	setReadState(true);
+	close(fileFd);
 	fileFd = -1;
 	memset(rBuf, 0, BUFFER_SIZE);
 	hasBody = false;
 	conf.clear();
+	req.body.clear();
 	res.status_code.clear();
 	res.headers.clear();
 	req.headers.clear();

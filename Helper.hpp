@@ -35,6 +35,8 @@ class Helper
 		std::string		getDate();
 		std::string		getLastModified(std::string path);
 		std::string		findType(Request &req);
+		int				findLen(Client &client);
+		void			fillBody(Client &client, int *len, bool *found);
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);
 		char			**setEnv(Client &client);

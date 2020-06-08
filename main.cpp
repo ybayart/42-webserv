@@ -30,11 +30,9 @@ int main(int ac, char **av)
 	listener.init();
 	while (1)
 	{
-		std::cout << "helo\n";
 		listener.select();
-		std::cout << "helofdsfq\n";
-		for (std::vector<Client>::iterator it(listener._clients.begin()); it != listener._clients.end(); ++it)
-			listener.handleRequest(it);
+		for (int i = 0; i <= listener.getMaxFd(); ++i)
+			listener.handleRequest(i);
 	}
 	return(0);
 }

@@ -35,21 +35,22 @@ class Listener
 		Config					_conf;
 
 	public:
-		std::vector<Client>		_clients;
+		std::map<int, Client*>		_clients;
 		
 		Listener();
 		~Listener();
 
+		int		getMaxFd() const;
 		int		config(char *file);
 		void	init();
 		void	select();
-		void	handleRequest(std::vector<Client>::iterator it);
+		void	handleRequest(int fd);
 
 	private:
 		void	acceptConnection();
-		void	readRequest(std::vector<Client>::iterator it);
-		void	readBody(std::vector<Client>::iterator it);
-		void	writeResponse(std::vector<Client>::iterator it);
+		void	readRequest(Client *client);
+		void	readBody(Client *client);
+		void	writeResponse(Client *client);
 		int		getTimeDiff(std::string start);
 
 };

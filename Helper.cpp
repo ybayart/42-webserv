@@ -61,6 +61,48 @@ std::string		Helper::getLastModified(std::string path)
 	return (buf);
 }
 
+int				Helper::findLen(Client &client)
+{
+	std::string		to_convert;
+	int				len;
+	std::string		tmp;
+
+	to_convert = client.rBuf;
+	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+	// std::cout << to_convert << ";" << std::endl;
+	len = fromHexa(to_convert.c_str());
+	std::cout << "l: " << len << std::endl;
+	if (len != 0)
+	{
+		tmp = client.rBuf;
+		tmp = tmp.substr(tmp.find("\r\n") + 2);
+		strcpy(client.rBuf, tmp.c_str());
+	}
+	return (len);
+}
+
+void			Helper::fillBody(Client &client, int *len, bool *found)
+{
+	std::string		tmp;
+
+	tmp = client.rBuf;
+	if (tmp.size() > *len)
+	{
+		client.req.body += tmp.substr(0, *len);
+		tmp = tmp.substr(*len + 1);
+		memset(client.rBuf, 0, BUFFER_SIZE);
+		strcpy(client.rBuf, tmp.c_str());
+		*len = 0;
+		*found = false;
+	}
+	else
+	{
+		client.req.body += tmp;
+		*len -= tmp.size();
+		memset(client.rBuf, 0, BUFFER_SIZE);
+	}
+}			
+
 int				Helper::ft_power(int nb, int power)
 {
 	if (power < 0)
@@ -190,8 +232,8 @@ char			**Helper::setEnv(Client &client)
 	char								**env;
 	std::map<std::string, std::string> 	envMap;
 
-	// envMap["CONTENT_LENGTH"] = std::to_string(client.req.bodyLen);
-	// envMap["CONTENT_TYPE"] = "text/html";
+	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
+	envMap["CONTENT_TYPE"] = "test/file";
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
 	envMap["PATH_INFO"] = client.req.uri;
 	envMap["PATH_TRANSLATED"] = client.conf["path"];
