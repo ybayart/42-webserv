@@ -35,8 +35,10 @@ class Client
 	private:
 		int			fd;
 		std::string	ip;
+		int			pid;
 		int			fileFd;
 		std::string	file_str;
+		std::string	tmp_path;
 		Request		req;
 		Response	res;
 		t_conf 		conf;

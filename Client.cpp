@@ -3,10 +3,10 @@
 Client::Client(int filed, fd_set *r, fd_set *w)
 : fd(filed), rSet(r), wSet(w), hasBody(false), fileFd(-1), status(PARSING)
 {
-	rBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	wBuf = (char *)malloc(sizeof(char) * BUFFER_SIZE);
-	memset(rBuf, 0, BUFFER_SIZE);
-	memset(wBuf, 0, BUFFER_SIZE);
+	rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	wBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	memset(rBuf, 0, BUFFER_SIZE + 1);
+	memset(wBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, rSet);
 }
@@ -62,7 +62,7 @@ void	Client::setToStandBy()
 	setReadState(true);
 	close(fileFd);
 	fileFd = -1;
-	memset(rBuf, 0, BUFFER_SIZE);
+	memset(rBuf, 0, BUFFER_SIZE + 1);
 	hasBody = false;
 	conf.clear();
 	req.body.clear();

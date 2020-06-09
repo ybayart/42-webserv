@@ -19,7 +19,7 @@
 #include "Config.hpp"
 #include "Client.hpp"
 
-#define TIMEOUT 30
+#define TIMEOUT 10
 
 class Listener
 {

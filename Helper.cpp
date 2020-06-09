@@ -37,26 +37,26 @@ std::string		Helper::getDate()
 {
 	struct timeval	time;
 	struct tm		*tm;
-	char			buf[BUFFER_SIZE];
+	char			buf[BUFFER_SIZE + 1];
 	int				ret;
 
 	gettimeofday(&time, NULL);
 	tm = localtime(&time.tv_sec);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE, "%a, %d %b %Y %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
 
 std::string		Helper::getLastModified(std::string path)
 {
-	char		buf[BUFFER_SIZE];
+	char		buf[BUFFER_SIZE + 1];
 	int			ret;
 	struct tm	*tm;
 	struct stat	file_info;
 
 	lstat(path.c_str(), &file_info);
 	tm = localtime(&file_info.st_mtime);
-	ret = strftime(buf, BUFFER_SIZE - 1, "%a, %d %b %Y %T %Z", tm);
+	ret = strftime(buf, BUFFER_SIZE, "%a, %d %b %Y %T %Z", tm);
 	buf[ret] = '\0';
 	return (buf);
 }
@@ -90,7 +90,7 @@ void			Helper::fillBody(Client &client, int *len, bool *found)
 	{
 		client.req.body += tmp.substr(0, *len);
 		tmp = tmp.substr(*len + 1);
-		memset(client.rBuf, 0, BUFFER_SIZE);
+		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 		strcpy(client.rBuf, tmp.c_str());
 		*len = 0;
 		*found = false;
@@ -99,7 +99,7 @@ void			Helper::fillBody(Client &client, int *len, bool *found)
 	{
 		client.req.body += tmp;
 		*len -= tmp.size();
-		memset(client.rBuf, 0, BUFFER_SIZE);
+		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 	}
 }			
 

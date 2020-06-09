@@ -61,7 +61,7 @@ void	Handler::handleGet(Client &client)
 	}
 	else if (client.status == BODY)
 	{
-		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
+		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE);
 		client.wBuf[bytes] = '\0';
 		if (bytes == 0)
 			client.setToStandBy();
@@ -152,10 +152,20 @@ void	Handler::handlePost(Client &client)
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
 		&& client.res.status_code == OK)
 		{
+			client.fileFd = -1;
 			execCGI(client);
-			parseCGIResult(client);
+			client.status = CGI;
 		}
-		fillStatus(client);
+		else 
+			fillStatus(client);
+	}
+	else if (client.status == CGI)
+	{
+		if (readCGIResult(client))
+		{
+			parseCGIResult(client);
+			fillStatus(client);
+		}
 	}
 	else if (client.status == HEADERS)
 	{
@@ -163,15 +173,17 @@ void	Handler::handlePost(Client &client)
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		if (client.res.headers.find("Content-Length") == client.res.headers.end())
-				client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
+			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
+		if (client.res.headers.find("Content-Type") == client.res.headers.end())
+			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		fillHeaders(client);
 	}
 	else if (client.status == BODY)
 	{
-		size = strlen(client.wBuf);
 		if (client.fileFd != -1)
 		{
-			bytes = read(client.fileFd, client.wBuf + size, BUFFER_SIZE - size - 1);
+			size = strlen(client.wBuf);
+			bytes = read(client.fileFd, client.wBuf + size, BUFFER_SIZE - size);
 			client.wBuf[bytes + size] = '\0';
 			if (bytes == 0)
 			{
@@ -181,16 +193,16 @@ void	Handler::handlePost(Client &client)
 		}
 		else
 		{
-			strcpy(client.wBuf + size, client.file_str.substr(0, BUFFER_SIZE - size - 1).c_str());
-			if (client.file_str.size() > BUFFER_SIZE - size - 1)
-				client.file_str = client.file_str.substr(BUFFER_SIZE - size - 1);
+			size = client.file_str.size();
+			bytes = write(client.fd, client.file_str.c_str(), size);
+			if (bytes < size)
+				client.file_str = client.file_str.substr(bytes);
 			else
 			{
 				client.file_str.clear();
 				client.setToStandBy();
 			}
 		}
-		// std::cout << "read: " << bytes << std::endl;
 	}
 }
 

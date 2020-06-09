@@ -154,7 +154,6 @@ void	Listener::writeResponse(Client *client)
 		{
 			if (size < 1024)
 				std::cout << "sent : [" << client->wBuf << "]\n";
-			sleep(2);
 		}
 		// std::cout << "write: " << bytes << std::endl;
 		if (bytes < size)
@@ -164,7 +163,7 @@ void	Listener::writeResponse(Client *client)
 			strcpy(client->wBuf, tmp.c_str());
 		}
 		else
-			memset(client->wBuf, 0, BUFFER_SIZE);
+			memset(client->wBuf, 0, BUFFER_SIZE + 1);
 	}
 	if (client->status != STANDBY)
 		_handler.dispatcher(*client);

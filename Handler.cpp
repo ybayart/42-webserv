@@ -258,9 +258,11 @@ void			Handler::execCGI(Client &client)
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
 	env = _helper.setEnv(client);
-	file_tmp = open("/tmp/cgi.tmp", O_WRONLY | O_CREAT, 0666);
+	client.tmp_path = "/tmp/cgi" + client.lastDate.substr(client.lastDate.size() - 7, 2) + ".tmp";
+	std::cout << "tmp: " << client.tmp_path << "\n";
+	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
-	if (fork() == 0)
+	if ((client.pid = fork()) == 0)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
@@ -280,24 +282,33 @@ void			Handler::execCGI(Client &client)
 	_helper.freeAll(args, env);
 }
 
-void			Handler::parseCGIResult(Client &client)
+bool		Handler::readCGIResult(Client &client)
 {
 	char			buffer[BUFFER_SIZE + 1];
 	int				bytes;
-	int				pos;
+	int				ret;
 
-	sleep(3);
-	client.fileFd = open("/tmp/cgi.tmp", O_RDONLY);
-	while (bytes == 0)
-		bytes = read(client.fileFd, buffer, 58);
+	waitpid(client.pid, NULL, 0);
+	if (client.fileFd == -1)
+		client.fileFd = open(client.tmp_path.c_str(), O_RDONLY);
+	bytes = read(client.fileFd, buffer, BUFFER_SIZE);
 	buffer[bytes] = '\0';
 	client.file_str += buffer;
-	while (bytes != 0)
+	if (bytes == 0)
 	{
-		bytes = read(client.fileFd, buffer, 58);
-		buffer[bytes] = '\0';
-		client.file_str += buffer;
+		close(client.fileFd);
+		client.fileFd = -1;
+		ret = unlink(client.tmp_path.c_str());
+		return (true);
 	}
+	else
+		return (false);
+}
+
+void		Handler::parseCGIResult(Client &client)
+{
+	int				pos;
+
 	pos = client.file_str.find("Status");
 	if (pos != std::string::npos)
 	{
@@ -325,7 +336,4 @@ void			Handler::parseCGIResult(Client &client)
 	client.file_str = client.file_str.substr(pos);
 	std::cout << "size: " << client.file_str.size() << std::endl;
 	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
-	close(client.fileFd);
-	client.fileFd = -1;
-	unlink("/tmp/cgi.tmp");
 }

@@ -32,7 +32,9 @@ int main(int ac, char **av)
 	{
 		listener.select();
 		for (int i = 0; i <= listener.getMaxFd(); ++i)
+		{
 			listener.handleRequest(i);
+		}
 	}
 	return(0);
 }
