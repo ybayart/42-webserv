@@ -229,12 +229,16 @@ void			Helper::negotiate(Client &client)
 
 char			**Helper::setEnv(Client &client)
 {
-	char								**env;
-	std::map<std::string, std::string> 	envMap;
+	char											**env;
+	std::map<std::string, std::string> 				envMap;
+
+	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
+	envMap["SERVER_SOFTWARE"] = "webserv";
 
 	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
-	envMap["CONTENT_TYPE"] = "test/file";
-	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+	if (client.req.headers.find("Content-Type") != client.req.headers.end())
+		envMap["CONTENT_TYPE"] = client.req.headers["Content-Type"];
 	envMap["PATH_INFO"] = client.req.uri;
 	envMap["PATH_TRANSLATED"] = client.conf["path"];
 	envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
@@ -244,12 +248,16 @@ char			**Helper::setEnv(Client &client)
 		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
 	envMap["SERVER_NAME"] = "localhost";
 	envMap["SERVER_PORT"] = "8080";
-	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
-	envMap["SERVER_SOFTWARE"] = "webserv";
 	envMap["REQUEST_URI"] = client.req.uri;
 	envMap["REQUEST_METHOD"] = client.req.method;
 	envMap["REMOTE_ADDR"] = client.ip;
 
+	std::map<std::string, std::string>::iterator b = client.req.headers.begin();
+	while (b != client.req.headers.end())
+	{
+		envMap["HTTP_" + b->first] = b->second;
+		++b;
+	}
 	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
 	std::map<std::string, std::string>::iterator it = envMap.begin();
 	int i = 0;

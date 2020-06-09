@@ -117,7 +117,7 @@ void	Listener::readRequest(Client *client)
 		client->rBuf[bytes] = '\0';
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL)
 		{
-			std::cout << "[" << client->rBuf << "]" << std::endl;
+			// std::cout << "[" << client->rBuf << "]" << std::endl;
 			client->lastDate = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
 			if (client->status == CODE)
@@ -150,11 +150,7 @@ void	Listener::writeResponse(Client *client)
 	if (size > 0)
 	{
 		bytes = write(client->fd, client->wBuf, size);
-		if (client->req.headers.find("X-Secret-Header-For-Test") != client->req.headers.end())
-		{
-			if (size < 1024)
-				std::cout << "sent : [" << client->wBuf << "]\n";
-		}
+		// std::cout << "sent : [" << client->wBuf << "]\n";
 		// std::cout << "write: " << bytes << std::endl;
 		if (bytes < size)
 		{

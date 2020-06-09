@@ -15,7 +15,7 @@
 #include "map"
 #include "messages.h"
 
-#define BUFFER_SIZE 120000
+#define BUFFER_SIZE 50000
 
 #define CODE 	1
 #define HEADERS 2

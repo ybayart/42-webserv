@@ -13,12 +13,12 @@ void	Handler::handleGet(Client &client)
 		if (client.conf["methods"].find(client.req.method) == std::string::npos)
 		{
 			client.res.status_code = NOTALLOWED;
-			client.fileFd = open("errorPages/405.html", O_RDONLY);
+			client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/405.html", O_RDONLY);
 		}
 		else if (client.conf.find("auth") != client.conf.end())
 		{
 			client.res.status_code = UNAUTHORIZED;
-			client.fileFd = open("errorPages/401.html", O_RDONLY);
+			client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/401.html", O_RDONLY);
 			if (client.req.headers.find("Authorization") != client.req.headers.end())
 			{
 				credential = _helper.decode64(client.req.headers["Authorization"].c_str());
@@ -32,7 +32,7 @@ void	Handler::handleGet(Client &client)
 			if (fd == -1 || client.conf["isdir"] == "true")
 			{
 				client.res.status_code = NOTFOUND;
-				client.fileFd = open("errorPages/404.html", O_RDONLY);
+				client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/404.html", O_RDONLY);
 			}
 			else
 			{
@@ -80,7 +80,7 @@ void	Handler::handleHead(Client &client)
 		if (client.conf["methods"].find(client.req.method) == std::string::npos)
 		{
 			client.res.status_code = NOTALLOWED;
-			client.fileFd = open("errorPages/405.html", O_RDONLY);
+			client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/405.html", O_RDONLY);
 		}
 		else
 		{
@@ -88,7 +88,7 @@ void	Handler::handleHead(Client &client)
 			if (fd == -1 || client.conf["isdir"] == "true")
 			{
 				client.res.status_code = NOTFOUND;
-				client.fileFd = open("errorPages/404.html", O_RDONLY);
+				client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/404.html", O_RDONLY);
 			}
 			else
 			{
@@ -127,7 +127,13 @@ void	Handler::handlePost(Client &client)
 		if (client.conf["methods"].find(client.req.method) == std::string::npos)
 		{
 			client.res.status_code = NOTALLOWED;
-			client.fileFd = open("errorPages/405.html", O_RDONLY);
+			client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/405.html", O_RDONLY);
+		}
+		else if (client.conf.find("max_body") != client.conf.end()
+		&& client.req.body.size() > atoi(client.conf["max_body"].c_str()))
+		{
+			client.res.status_code = REQTOOLARGE;
+			client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/413.html", O_RDONLY);
 		}
 		else
 		{
@@ -140,7 +146,7 @@ void	Handler::handlePost(Client &client)
 			if (fd == -1 || client.conf["isdir"] == "true")
 			{
 				client.res.status_code = NOTFOUND;
-				client.fileFd = open("errorPages/404.html", O_RDONLY);
+				client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/404.html", O_RDONLY);
 			}
 			else
 			{
@@ -195,6 +201,7 @@ void	Handler::handlePost(Client &client)
 		{
 			size = client.file_str.size();
 			bytes = write(client.fd, client.file_str.c_str(), size);
+			// std::cout << "bytes write: " << bytes << std::endl;
 			if (bytes < size)
 				client.file_str = client.file_str.substr(bytes);
 			else
@@ -259,7 +266,7 @@ void	Handler::handleBadRequest(Client &client)
 
 	if (client.status != BODY)
 	{
-		client.fileFd = open("errorPages/400.html", O_RDONLY);
+		client.fileFd = open("/Users/farhad/Desktop/webserv/errorPages/400.html", O_RDONLY);
 		fstat(client.fileFd, &file_info);
 		client.res.version = "HTTP/1.1";
 		client.res.status_code = BADREQUEST;

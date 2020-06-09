@@ -29,6 +29,8 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	if (request.valid)
 	{
 		getConf(client, request, conf);
+		if (client.conf["root"][0] != '\0')
+			chdir(client.conf["root"].c_str());
 		if (request.method == "POST" || request.method == "PUT")
 			client.hasBody = true;
 		else
@@ -155,12 +157,12 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 	lstat(client.conf["path"].c_str(), &info);
 	if (S_ISDIR(info.st_mode))
 	{
-		if (elmt.find("default") != elmt.end())
-			client.conf["path"] += "/" + elmt["default"];
+		if (elmt.find("index") != elmt.end())
+			client.conf["path"] += "/" + elmt["index"];
 		else
 			client.conf["isdir"] = "true";
 	}
-	std::cout << "p: " << client.conf["path"] << std::endl;
+	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
@@ -254,12 +256,13 @@ void			Handler::execCGI(Client &client)
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
-	args = (char **)(malloc(sizeof(char *) * 2));
+	args = (char **)(malloc(sizeof(char *) * 3));
 	args[0] = strdup(path.c_str());
-	args[1] = NULL;
+	args[1] = strdup(client.conf["path"].c_str());
+	args[2] = NULL;
 	env = _helper.setEnv(client);
 	client.tmp_path = "/tmp/cgi" + client.lastDate.substr(client.lastDate.size() - 7, 2) + ".tmp";
-	std::cout << "tmp: " << client.tmp_path << "\n";
+	// std::cout << "tmp: " << client.tmp_path << "\n";
 	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
 	if ((client.pid = fork()) == 0)
@@ -277,7 +280,7 @@ void			Handler::execCGI(Client &client)
 		close(tubes[0]);
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
-		std::cout << "sent "<< bytes << " bytes to cgi\n";
+		// std::cout << "sent "<< bytes << " bytes to cgi\n";
 	}
 	_helper.freeAll(args, env);
 }
@@ -286,7 +289,6 @@ bool		Handler::readCGIResult(Client &client)
 {
 	char			buffer[BUFFER_SIZE + 1];
 	int				bytes;
-	int				ret;
 
 	waitpid(client.pid, NULL, 0);
 	if (client.fileFd == -1)
@@ -298,7 +300,7 @@ bool		Handler::readCGIResult(Client &client)
 	{
 		close(client.fileFd);
 		client.fileFd = -1;
-		ret = unlink(client.tmp_path.c_str());
+		unlink(client.tmp_path.c_str());
 		return (true);
 	}
 	else
@@ -334,6 +336,6 @@ void		Handler::parseCGIResult(Client &client)
 	pos = client.file_str.find("\r\n\r\n");
 	pos += 4;
 	client.file_str = client.file_str.substr(pos);
-	std::cout << "size: " << client.file_str.size() << std::endl;
+	// std::cout << "size: " << client.file_str.size() << std::endl;
 	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
 }
