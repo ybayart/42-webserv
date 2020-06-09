@@ -119,6 +119,7 @@ void	Handler::handlePost(Client &client)
 	struct stat	file_info;
 	int			fd;
 	int			bytes;
+	int			size;
 
 	if (client.status == CODE)
 	{
@@ -147,35 +148,49 @@ void	Handler::handlePost(Client &client)
 				client.fileFd = fd;
 			}
 		}
-		fillStatus(client);
-	}
-	else if (client.status == HEADERS)
-	{
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
 		&& client.res.status_code == OK)
 		{
 			execCGI(client);
-			client.setToStandBy();
-			return ;
+			parseCGIResult(client);
 		}
+		fillStatus(client);
+	}
+	else if (client.status == HEADERS)
+	{
 		fstat(client.fileFd, &file_info);
-		if (client.res.status_code == OK)
-		{
-			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
-			client.res.headers["Content-Type"] = _helper.findType(client.req);
-		}
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
-		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
+		if (client.res.headers.find("Content-Length") == client.res.headers.end())
+				client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		fillHeaders(client);
 	}
 	else if (client.status == BODY)
 	{
-		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE - 1);
-		client.wBuf[bytes] = '\0';
-		if (bytes <= 0)
-			client.setToStandBy();
+		size = strlen(client.wBuf);
+		if (client.fileFd != -1)
+		{
+			bytes = read(client.fileFd, client.wBuf + size, BUFFER_SIZE - size - 1);
+			client.wBuf[bytes + size] = '\0';
+			if (bytes == 0)
+			{
+				close(client.fileFd);
+				client.setToStandBy();
+			}
+		}
+		else
+		{
+			strcpy(client.wBuf + size, client.file_str.substr(0, BUFFER_SIZE - size - 1).c_str());
+			if (client.file_str.size() > BUFFER_SIZE - size - 1)
+				client.file_str = client.file_str.substr(BUFFER_SIZE - size - 1);
+			else
+			{
+				client.file_str.clear();
+				client.setToStandBy();
+			}
+		}
+		// std::cout << "read: " << bytes << std::endl;
 	}
 }
 

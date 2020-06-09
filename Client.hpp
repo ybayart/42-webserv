@@ -15,7 +15,7 @@
 #include "map"
 #include "messages.h"
 
-#define BUFFER_SIZE 99999
+#define BUFFER_SIZE 120000
 
 #define CODE 	1
 #define HEADERS 2
@@ -36,6 +36,7 @@ class Client
 		int			fd;
 		std::string	ip;
 		int			fileFd;
+		std::string	file_str;
 		Request		req;
 		Response	res;
 		t_conf 		conf;

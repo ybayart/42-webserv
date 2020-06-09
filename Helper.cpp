@@ -71,7 +71,7 @@ int				Helper::findLen(Client &client)
 	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
 	// std::cout << to_convert << ";" << std::endl;
 	len = fromHexa(to_convert.c_str());
-	std::cout << "l: " << len << std::endl;
+	// std::cout << "l: " << len << std::endl;
 	if (len != 0)
 	{
 		tmp = client.rBuf;

@@ -142,19 +142,37 @@ void	Listener::readBody(Client *client)
 
 void	Listener::writeResponse(Client *client)
 {
-	int		bytes;
+	int				bytes;
+	int				size;
+	std::string		tmp;
 
-	if (strlen(client->wBuf) > 0)
+	size = strlen(client->wBuf);
+	if (size > 0)
 	{
-		bytes = write(client->fd, client->wBuf, strlen(client->wBuf));
-		std::cout << "sent : [" << client->wBuf << "]\n";
-		memset(client->wBuf, 0, BUFFER_SIZE);
+		bytes = write(client->fd, client->wBuf, size);
+		if (client->req.headers.find("X-Secret-Header-For-Test") != client->req.headers.end())
+		{
+			if (size < 1024)
+				std::cout << "sent : [" << client->wBuf << "]\n";
+			sleep(2);
+		}
+		// std::cout << "write: " << bytes << std::endl;
+		if (bytes < size)
+		{
+			tmp = client->wBuf;
+			tmp = tmp.substr(bytes);
+			strcpy(client->wBuf, tmp.c_str());
+		}
+		else
+			memset(client->wBuf, 0, BUFFER_SIZE);
 	}
 	if (client->status != STANDBY)
 		_handler.dispatcher(*client);
 	else
+	{
 		if (getTimeDiff(client->lastDate) >= TIMEOUT)
 			client->status = DONE;
+	}
 	if (client->status == DONE)
 	{
 		std::cout << "done\n";

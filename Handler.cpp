@@ -258,13 +258,13 @@ void			Handler::execCGI(Client &client)
 	args[0] = strdup(path.c_str());
 	args[1] = NULL;
 	env = _helper.setEnv(client);
-	// file_tmp = open("/tmp/cgi.tmp", O_WRONLY | O_CREAT, 0666);
+	file_tmp = open("/tmp/cgi.tmp", O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
 	if (fork() == 0)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
-		dup2(client.fd, 1);
+		dup2(file_tmp, 1);
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
@@ -274,7 +274,7 @@ void			Handler::execCGI(Client &client)
 	{
 		close(tubes[0]);
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
-		// close(file_tmp);
+		close(file_tmp);
 		std::cout << "sent "<< bytes << " bytes to cgi\n";
 	}
 	_helper.freeAll(args, env);
@@ -282,10 +282,50 @@ void			Handler::execCGI(Client &client)
 
 void			Handler::parseCGIResult(Client &client)
 {
-	int		file_tmp;
-	char	buffer[BUFFER_SIZE + 1];
+	char			buffer[BUFFER_SIZE + 1];
+	int				bytes;
+	int				pos;
 
-	file_tmp = open("/tmp/cgi.tmp", O_RDONLY);
-	read(file_tmp, buffer, BUFFER_SIZE);
-
+	sleep(3);
+	client.fileFd = open("/tmp/cgi.tmp", O_RDONLY);
+	while (bytes == 0)
+		bytes = read(client.fileFd, buffer, 58);
+	buffer[bytes] = '\0';
+	client.file_str += buffer;
+	while (bytes != 0)
+	{
+		bytes = read(client.fileFd, buffer, 58);
+		buffer[bytes] = '\0';
+		client.file_str += buffer;
+	}
+	pos = client.file_str.find("Status");
+	if (pos != std::string::npos)
+	{
+		client.res.status_code.clear();
+		pos += 8;
+		while (client.file_str[pos] != '\r')
+		{
+			client.res.status_code += client.file_str[pos];
+			pos++;
+		}
+	}
+	pos = client.file_str.find("Content-Type");
+	if (pos != std::string::npos)
+	{
+		client.res.headers["Content-Type"].clear();
+		pos += 14;
+		while (client.file_str[pos] != '\r')
+		{
+			client.res.headers["Content-Type"] += client.file_str[pos];
+			pos++;
+		}
+	}
+	pos = client.file_str.find("\r\n\r\n");
+	pos += 4;
+	client.file_str = client.file_str.substr(pos);
+	std::cout << "size: " << client.file_str.size() << std::endl;
+	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
+	close(client.fileFd);
+	client.fileFd = -1;
+	unlink("/tmp/cgi.tmp");
 }
