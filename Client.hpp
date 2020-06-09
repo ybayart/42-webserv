@@ -32,9 +32,18 @@ class Client
 	friend class Handler;
 	friend class Helper;
 
+	public:	
+		struct t_chunk
+		{
+			int		len;
+			bool	done;
+			bool	found;
+		};
+
 	private:
 		int			fd;
 		std::string	ip;
+		int			port;
 		int			pid;
 		int			fileFd;
 		std::string	file_str;
@@ -49,6 +58,7 @@ class Client
 		bool		hasBody;
 		int			status;
 		std::string	lastDate;
+		t_chunk		chunk;
 
 	public:
 		Client(int filed, fd_set *r, fd_set *w);

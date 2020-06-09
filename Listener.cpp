@@ -37,7 +37,7 @@ void	Listener::init()
 	_info.sin_addr.s_addr = INADDR_ANY;
 	_info.sin_port = htons(port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-    listen(_fd, 5);
+    listen(_fd, 1000);
 	server = new Client(_fd, &_rSet, &_wSet);
 	_clients[_fd] = server;
     _maxFd = _fd;
@@ -87,9 +87,11 @@ void	Listener::acceptConnection()
 		_maxFd = fd;
 	newOne = new Client(fd, &_rSet, &_wSet);
 	newOne->ip = inet_ntoa(info.sin_addr);
+	newOne->port = htons(info.sin_port);
 	_clients[fd] = newOne;
 	std::cout << "new connection from " << newOne->ip << ":"
-	<< htons(info.sin_port) << std::endl;
+	<< newOne->port << std::endl;
+	std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
 }
 
 void	Listener::readRequest(Client *client)
@@ -107,9 +109,10 @@ void	Listener::readRequest(Client *client)
 			std::cout << strerror(errno) << std::endl;
 		else
 		{
-			std::cout << "connection closed\n";
-			delete client;
+			std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
 			_clients.erase(client->fd);
+			delete client;
+			std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
 		}
 	}
 	else
@@ -170,9 +173,10 @@ void	Listener::writeResponse(Client *client)
 	}
 	if (client->status == DONE)
 	{
-		std::cout << "done\n";
-		delete client;
+		std::cout << "done with " << client->ip << ":" << client->port << "\n";
 		_clients.erase(client->fd);
+		delete client;
+		std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
 	}
 
 }

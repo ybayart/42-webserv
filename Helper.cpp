@@ -81,24 +81,24 @@ int				Helper::findLen(Client &client)
 	return (len);
 }
 
-void			Helper::fillBody(Client &client, int *len, bool *found)
+void			Helper::fillBody(Client &client)
 {
 	std::string		tmp;
 
 	tmp = client.rBuf;
-	if (tmp.size() > *len)
+	if (tmp.size() > client.chunk.len)
 	{
-		client.req.body += tmp.substr(0, *len);
-		tmp = tmp.substr(*len + 1);
+		client.req.body += tmp.substr(0, client.chunk.len);
+		tmp = tmp.substr(client.chunk.len + 1);
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 		strcpy(client.rBuf, tmp.c_str());
-		*len = 0;
-		*found = false;
+		client.chunk.len = 0;
+		client.chunk.found = false;
 	}
 	else
 	{
 		client.req.body += tmp;
-		*len -= tmp.size();
+		client.chunk.len -= tmp.size();
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 	}
 }			

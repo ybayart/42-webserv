@@ -9,6 +9,9 @@ Client::Client(int filed, fd_set *r, fd_set *w)
 	memset(wBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, rSet);
+	chunk.len = 0;
+	chunk.done = false;
+	chunk.found = false;
 }
 
 Client::~Client()
@@ -57,7 +60,8 @@ void	Client::setWriteState(bool state)
 
 void	Client::setToStandBy()
 {
-	std::cout << "standing by\n";
+	// std::cout << "standing by\n";
+	std::cout << ip << ":" << port << ": " << req.method << ": " << conf["path"] << std::endl;
 	status = STANDBY;
 	setReadState(true);
 	close(fileFd);

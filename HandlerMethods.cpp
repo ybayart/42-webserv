@@ -61,10 +61,19 @@ void	Handler::handleGet(Client &client)
 	}
 	else if (client.status == BODY)
 	{
+		errno = 0;
 		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE);
+		if (bytes == -1)
+		{
+			std::cout << strerror(errno) << std::endl;
+			return ;
+		}
 		client.wBuf[bytes] = '\0';
 		if (bytes == 0)
+		{
+			close(client.fileFd);
 			client.setToStandBy();
+		}
 	}
 }
 

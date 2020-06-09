@@ -93,31 +93,28 @@ void			Handler::getBody(Client &client)
 
 void			Handler::dechunkBody(Client &client)
 {
-	static int 		len = 0;
 	int				bytes;
-	static bool		found = false;
-	static bool		done = false;
 	int				ret;
 
-	if (strstr(client.rBuf, "\r\n") && found == false)
+	if (strstr(client.rBuf, "\r\n") && client.chunk.found == false)
 	{
-		len = _helper.findLen(client);
-		if (len == 0)
-			done = true;
+		client.chunk.len = _helper.findLen(client);
+		if (client.chunk.len == 0)
+			client.chunk.done = true;
 		else
-			found = true;
+			client.chunk.found = true;
 	}
-	else if (found == true)
-		_helper.fillBody(client, &len, &found);
-	if (done)
+	else if (client.chunk.found == true)
+		_helper.fillBody(client);
+	if (client.chunk.done)
 	{
 		client.status = CODE;
-		found = false;
-		done = 0;
+		client.chunk.found = false;
+		client.chunk.done = false;
 		return ;
 	}
 	bytes = strlen(client.rBuf);
-	ret = read(client.fd, client.rBuf + bytes, len + 2);
+	ret = read(client.fd, client.rBuf + bytes, client.chunk.len + 2);
 	if (ret > 0)
 	{
 		bytes += ret;
@@ -280,6 +277,7 @@ void			Handler::execCGI(Client &client)
 		close(tubes[0]);
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
+		close(tubes[1]);
 		// std::cout << "sent "<< bytes << " bytes to cgi\n";
 	}
 	_helper.freeAll(args, env);
