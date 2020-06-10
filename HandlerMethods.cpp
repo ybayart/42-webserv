@@ -147,7 +147,8 @@ void	Handler::handlePut(Client &client)
 {
 	int 			ret;
 	std::string		path;
-	struct stat	file_info;
+	struct stat		file_info;
+	std::string		body;
 
 	if (client.status == PARSING)
 		parseBody(client);
@@ -161,10 +162,25 @@ void	Handler::handlePut(Client &client)
 	{
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
+		if (client.res.status_code == CREATED || client.res.status_code == NOCONTENT)
+		{
+			client.res.headers["Content-Location"] = client.conf["path"];
+			if (client.res.status_code == CREATED)
+			{
+				body = "Ressource created\n";
+				client.res.headers["Content-Length"] = std::to_string(body.size());
+			}
+
+		}
 		_helper.fillHeaders(client);
 	}
 	else if (client.status == BODY)
 	{
+		if (client.res.status_code == CREATED)
+		{
+			body = "Ressource created\n";
+			strcpy(client.wBuf, body.c_str());
+		}
 		client.lastDate = _helper.getDate();
 		write(client.fileFd, client.req.body.c_str(), client.req.body.size());
 		client.setToStandBy();
