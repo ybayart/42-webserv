@@ -5,6 +5,7 @@ SRCS = Listener.cpp \
 	Handler.cpp \
 	HandlerMethods.cpp \
 	Helper.cpp \
+	HelperStatusCode.cpp \
 	Config.cpp \
 	main.cpp
 

@@ -35,7 +35,10 @@ class Helper
 		std::string		getDate();
 		std::string		getLastModified(std::string path);
 		std::string		findType(Request &req);
+		void			getErrorPage(Client &client);
 		int				findLen(Client &client);
+		void			fillStatus(Client &client);
+		void			fillHeaders(Client &client);
 		void			fillBody(Client &client);
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);
@@ -44,6 +47,11 @@ class Helper
 		std::string		decode64(const char *data);
 		void			negotiate(Client &client);
 		void			assignMIME();
+
+		int				getStatusCode(Client &client);
+		int				GETStatus(Client &client);
+		int				POSTStatus(Client &client);
+		int				PUTStatus(Client &client);
 
 };
 

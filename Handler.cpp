@@ -26,9 +26,9 @@ void			Handler::parseRequest(Client &client, Config &conf)
 	std::getline(is, request.version,  '\n');
 	parseHeaders(is, request);
 	request.valid = checkSyntax(request);
+	getConf(client, request, conf);
 	if (request.valid)
 	{
-		getConf(client, request, conf);
 		if (client.conf["root"][0] != '\0')
 			chdir(client.conf["root"].c_str());
 		if (request.method == "POST" || request.method == "PUT")
@@ -129,6 +129,11 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 	std::string 	file;
 	struct stat		info;
 
+	if (!req.valid)
+	{
+		client.conf["error"] = conf._elmts["server|"]["error"];
+		return ;
+	}
 	file = req.uri.substr(req.uri.find_last_of('/') + 1, req.uri.find('?'));
 	tmp = req.uri;
 	do
@@ -159,6 +164,7 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 		else
 			client.conf["isdir"] = "true";
 	}
+	client.conf["error"] = conf._elmts["server|"]["error"];
 	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
@@ -174,32 +180,6 @@ void			Handler::dispatcher(Client &client)
 	map["BAD"] = &Handler::handleBadRequest;
 
 	(this->*map[client.req.method])(client);
-}
-
-void			Handler::fillStatus(Client &client)
-{
-	std::string		status;
-
-	status = client.res.version + " " + client.res.status_code + "\r\n";
-	strcpy(client.wBuf, status.c_str());
-	client.status = HEADERS;
-}
-
-void			Handler::fillHeaders(Client &client)
-{
-	std::string		result;
-	std::map<std::string, std::string>::const_iterator b;
-
-	b = client.res.headers.begin();
-	while (b != client.res.headers.end())
-	{
-		if (b->second != "")
-			result += b->first + ": " + b->second + "\r\n";
-		++b;
-	}
-	result += "\r\n";
-	strcpy(client.wBuf, result.c_str());
-	client.status = BODY;
 }
 
 //TO COMPLETE

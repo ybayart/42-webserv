@@ -33,6 +33,14 @@ std::string		Helper::findType(Request &req)
 	return ("");
 }
 
+void			Helper::getErrorPage(Client &client)
+{
+	std::string		path;
+
+	path = client.conf["error"] + "/" + client.res.status_code.substr(0, 3) + ".html";
+	client.fileFd = open(path.c_str(), O_RDONLY);
+}
+
 std::string		Helper::getDate()
 {
 	struct timeval	time;
@@ -79,6 +87,32 @@ int				Helper::findLen(Client &client)
 		strcpy(client.rBuf, tmp.c_str());
 	}
 	return (len);
+}
+
+void			Helper::fillStatus(Client &client)
+{
+	std::string		status;
+
+	status = client.res.version + " " + client.res.status_code + "\r\n";
+	strcpy(client.wBuf, status.c_str());
+	client.status = HEADERS;
+}
+
+void			Helper::fillHeaders(Client &client)
+{
+	std::string		result;
+	std::map<std::string, std::string>::const_iterator b;
+
+	b = client.res.headers.begin();
+	while (b != client.res.headers.end())
+	{
+		if (b->second != "")
+			result += b->first + ": " + b->second + "\r\n";
+		++b;
+	}
+	result += "\r\n";
+	strcpy(client.wBuf, result.c_str());
+	client.status = BODY;
 }
 
 void			Helper::fillBody(Client &client)
