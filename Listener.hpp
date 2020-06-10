@@ -19,7 +19,7 @@
 #include "Config.hpp"
 #include "Client.hpp"
 
-#define TIMEOUT 120
+#define TIMEOUT 10
 
 class Listener
 {
@@ -49,7 +49,6 @@ class Listener
 	private:
 		void	acceptConnection();
 		void	readRequest(Client *client);
-		void	readBody(Client *client);
 		void	writeResponse(Client *client);
 		int		getTimeDiff(std::string start);
 

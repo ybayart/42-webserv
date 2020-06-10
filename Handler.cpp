@@ -69,24 +69,12 @@ void			Handler::getBody(Client &client)
 
 	to_read = atoi(client.req.headers["Content-Length"].c_str());
 	bytes = strlen(client.rBuf);
-	if (bytes < to_read)
-	{
-		to_read -= bytes;
-		if (to_read > 0)
-		{
-			ret = read(client.fd, client.rBuf + bytes, to_read);
-			if (ret == -1)
-				return ;
-			bytes += ret;
-		}
-		if (bytes > 0)
-			client.rBuf[bytes] = '\0';
-	}
 	if (bytes >= to_read)
 	{
 		memset(client.rBuf + to_read, 0, BUFFER_SIZE - to_read);
 		std::cout << "b: " << client.rBuf << std::endl;
 		client.req.body = client.rBuf;
+		client.hasBody = false;
 		client.status = CODE;
 	}
 }
@@ -108,17 +96,12 @@ void			Handler::dechunkBody(Client &client)
 		_helper.fillBody(client);
 	if (client.chunk.done)
 	{
+		memset(client.rBuf, 0, BUFFER_SIZE + 1);
+		client.hasBody = false;
 		client.status = CODE;
 		client.chunk.found = false;
 		client.chunk.done = false;
 		return ;
-	}
-	bytes = strlen(client.rBuf);
-	ret = read(client.fd, client.rBuf + bytes, client.chunk.len + 2);
-	if (ret > 0)
-	{
-		bytes += ret;
-		client.rBuf[bytes] = '\0';
 	}
 }
 

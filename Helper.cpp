@@ -79,13 +79,10 @@ int				Helper::findLen(Client &client)
 	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
 	// std::cout << to_convert << ";" << std::endl;
 	len = fromHexa(to_convert.c_str());
-	// std::cout << "l: " << len << std::endl;
-	if (len != 0)
-	{
-		tmp = client.rBuf;
-		tmp = tmp.substr(tmp.find("\r\n") + 2);
-		strcpy(client.rBuf, tmp.c_str());
-	}
+	// std::cout << "l: " << len << " / " << client.port << std::endl;
+	tmp = client.rBuf;
+	tmp = tmp.substr(tmp.find("\r\n") + 2);
+	strcpy(client.rBuf, tmp.c_str());
 	return (len);
 }
 
@@ -135,6 +132,7 @@ void			Helper::fillBody(Client &client)
 		client.chunk.len -= tmp.size();
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 	}
+	// std::cout << "body size: " << client.req.body.size() << " [" << client.ip << ":" << client.port << "]\n";
 }			
 
 int				Helper::ft_power(int nb, int power)

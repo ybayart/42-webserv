@@ -63,12 +63,7 @@ void	Listener::handleRequest(int fd)
 		if (client->fd == this->_fd)
 			acceptConnection();
 		else
-		{
-			if (client->hasBody == false)
-				readRequest(client);
-			else
-				readBody(client);
-		}
+			readRequest(client);
 	}
 	else if (FD_ISSET(client->fd, &_writeSet) && client->fd != this->_fd)
 		writeResponse(client);
@@ -100,13 +95,12 @@ void	Listener::readRequest(Client *client)
 	int			ret;
 
 	bytes = strlen(client->rBuf);
-	errno = 0;
-	ret = read(client->fd, client->rBuf + bytes, 2);
+	ret = read(client->fd, client->rBuf + bytes, BUFFER_SIZE - bytes);
 	bytes += ret;
 	if (ret <= 0)
 	{
 		if (ret == -1)
-			std::cout << strerror(errno) << std::endl;
+			std::cout << "reading error" << std::endl;
 		else
 		{
 			std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
@@ -118,28 +112,19 @@ void	Listener::readRequest(Client *client)
 	else
 	{
 		client->rBuf[bytes] = '\0';
-		if (strstr(client->rBuf, "\r\n\r\n") != NULL)
+		if (strstr(client->rBuf, "\r\n\r\n") != NULL
+			&& client->hasBody == false)
 		{
 			// std::cout << "[" << client->rBuf << "]" << std::endl;
 			client->lastDate = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
-			if (client->status == CODE)
-			{
-				client->setReadState(false);
-				client->setWriteState(true);
-			}
+			client->setWriteState(true);
 		}
-	}
-}
-
-void	Listener::readBody(Client *client)
-{
-	_handler.parseBody(*client);
-	if (client->status == CODE)
-	{
-		client->hasBody = false;
-		client->setReadState(false);
-		client->setWriteState(true);
+		if (client->hasBody == true)
+		{
+			client->status = PARSING;
+			_handler.parseBody(*client);
+		}
 	}
 }
 
@@ -154,7 +139,6 @@ void	Listener::writeResponse(Client *client)
 	{
 		bytes = write(client->fd, client->wBuf, size);
 		// std::cout << "sent : [" << client->wBuf << "]\n";
-		// std::cout << "write: " << bytes << std::endl;
 		if (bytes < size)
 		{
 			tmp = client->wBuf;
@@ -164,9 +148,9 @@ void	Listener::writeResponse(Client *client)
 		else
 			memset(client->wBuf, 0, BUFFER_SIZE + 1);
 	}
-	if (client->status != STANDBY)
+	if (client->status != STANDBY && client->status != DONE)
 		_handler.dispatcher(*client);
-	else
+	else if (client->status == STANDBY)
 	{
 		if (getTimeDiff(client->lastDate) >= TIMEOUT)
 			client->status = DONE;

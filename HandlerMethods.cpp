@@ -76,6 +76,8 @@ void	Handler::handlePost(Client &client)
 	int			bytes;
 	int			size;
 
+	if (client.status == PARSING)
+		parseBody(client);
 	if (client.status == CODE)
 	{
 		if (!_helper.getStatusCode(client))
@@ -112,6 +114,7 @@ void	Handler::handlePost(Client &client)
 	}
 	else if (client.status == BODY)
 	{
+		client.lastDate = _helper.getDate();
 		if (client.fileFd != -1)
 		{
 			size = strlen(client.wBuf);
@@ -127,7 +130,8 @@ void	Handler::handlePost(Client &client)
 		{
 			size = client.file_str.size();
 			bytes = write(client.fd, client.file_str.c_str(), size);
-			// std::cout << "bytes write: " << bytes << std::endl;
+			if (bytes == -1)
+				return ;
 			if (bytes < size)
 				client.file_str = client.file_str.substr(bytes);
 			else
@@ -145,6 +149,8 @@ void	Handler::handlePut(Client &client)
 	std::string		path;
 	struct stat	file_info;
 
+	if (client.status == PARSING)
+		parseBody(client);
 	if (client.status == CODE)
 	{
 		if (!_helper.getStatusCode(client))
@@ -159,6 +165,7 @@ void	Handler::handlePut(Client &client)
 	}
 	else if (client.status == BODY)
 	{
+		client.lastDate = _helper.getDate();
 		write(client.fileFd, client.req.body.c_str(), client.req.body.size());
 		client.setToStandBy();
 	}
