@@ -45,6 +45,7 @@ class Handler
 		void			handleBadRequest(Client &client);
 
 		void			getConf(Client &client, Request &req, Config &conf);
+		void			negotiate(Client &client);
 		bool			checkSyntax(const Request &request);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			getBody(Client &client);

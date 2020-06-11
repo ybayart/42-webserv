@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <map>
+#include <set>
 #include <sys/stat.h>
 #include <sys/errno.h>
 #include "messages.h"
@@ -45,7 +46,8 @@ class Helper
 		char			**setEnv(Client &client);
 		void			freeAll(char **args, char **env);
 		std::string		decode64(const char *data);
-		void			negotiate(Client &client);
+		void			parseAcceptLanguage(Client &client, std::multimap<std::string, std::string> &map);
+		void			parseAcceptCharsets(Client &client, std::multimap<std::string, std::string> &map);
 		void			assignMIME();
 
 		int				getStatusCode(Client &client);

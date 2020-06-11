@@ -151,6 +151,34 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
+void			Handler::negotiate(Client &client)
+{
+	std::multimap<std::string, std::string> 	languageMap;
+	std::multimap<std::string, std::string> 	charsetMap;
+	int									fd;
+	std::string							path;
+
+	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
+		_helper.parseAcceptLanguage(client, languageMap);
+	if (client.req.headers.find("Accept-Charsets") != client.req.headers.end())
+		_helper.parseAcceptCharsets(client, charsetMap);
+	if (!languageMap.empty())
+	{
+		for (std::multimap<std::string, std::string>::reverse_iterator it(languageMap.rbegin()); it != languageMap.rend(); ++it)
+		{
+			path = client.conf["path"] + "." + it->second;
+			fd = open(path.c_str(), O_RDONLY);
+			if (fd != -1)
+			{
+				client.conf["path"] = path;
+				client.fileFd = fd;
+				client.res.status_code = OK;
+				return ;
+			}
+		}
+	}
+}
+
 void			Handler::dispatcher(Client &client)
 {
 	typedef void	(Handler::*ptr)(Client &client);

@@ -218,46 +218,81 @@ std::string		Helper::decode64(const char *data)
     return (str);
 }
 
-void			Helper::negotiate(Client &client)
+void			Helper::parseAcceptLanguage(Client &client, std::multimap<std::string, std::string> &map)
 {
-	std::map<float, std::string> 	map;
-	std::string						language;
-	std::string						to_parse;
-	float							q;
-	std::map<float, std::string>::iterator 	b;
+	std::string							language;
+	std::string							to_parse;
+	std::string							q;
 
-	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
+	to_parse = client.req.headers["Accept-Language"];
+	std::cout << to_parse << std::endl;
+	int i = 0;
+	while (to_parse[i] != '\0' && to_parse[i] != '\r')
 	{
-		to_parse = client.req.headers["Accept-Language"];
-		if (to_parse.back() == '\r')
-			to_parse.pop_back();
-		while (to_parse != "")
+		language.clear();
+		q.clear();
+		while (to_parse[i] && to_parse[i] != ',' && 
+		to_parse[i] != ';' && to_parse[i] != '\r')
 		{
-			language = to_parse.substr(0, to_parse.find(";"));
-			std::cout << language << "!\n";
-			to_parse = to_parse.substr(to_parse.find(";") + 1);
-			std::cout << to_parse << "!\n";
-			if (to_parse[0] == 'q')
+			language += to_parse[i];
+			++i;
+		}
+		if (to_parse[i] == ',' || to_parse[i] == '\r')
+			q = "1";
+		else if (to_parse[i] == ';')
+		{
+			i += 3;
+			while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
 			{
-				to_parse = to_parse.substr(to_parse.find("="));
-				q = atof(to_parse.c_str());
+				q += to_parse[i];
+				++i;
 			}
-			else
-				q = 1;
-			map[q] = language;
-			if (to_parse.find(",") != std::string::npos)
-				to_parse = to_parse.substr(to_parse.find(","));
-			else
-				to_parse = "";
 		}
-		b = map.begin();
-		while (b != map.end())
-		{
-			std::cout << b->first << ":" << b->second << std::endl;
-			++b;
-		}
+		++i;
+		std::pair<std::string, std::string>	pair(q, language);
+		map.insert(pair);
 	}
+	// for (std::multimap<std::string, std::string>::iterator it(map.begin()); it != map.end(); ++it)
+	// {
+	// 	std::cout << it->first + ":" + it->second << std::endl;
+	// }
 }
+
+void			Helper::parseAcceptCharsets(Client &client, std::multimap<std::string, std::string> &map)
+{
+	std::string							charset;
+	std::string							to_parse;
+	std::string							q;
+
+	to_parse = client.req.headers["Accept-Charsets"];
+	std::cout << to_parse << std::endl;
+	// int i = 0;
+	// while (to_parse[i] != '\0' && to_parse[i] != '\r')
+	// {
+	// 	charset.clear();
+	// 	q.clear();
+	// 	while (to_parse[i] && to_parse[i] != ';' && to_parse[i] != '\r')
+	// 	{
+	// 		charset += to_parse[i];
+	// 		++i;
+	// 	}
+	// 	if (to_parse[i] == ';')
+	// 	{
+	// 		if (to_parse[i + 1] == 'q' && to_parse[i + 2] == '=')
+	// 			i += 3;
+	// 	}
+	// 	while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
+	// 	{
+	// 		q += to_parse[i];
+	// 		++i;
+	// 	}
+	// 	if (to_parse[i] == ',')
+	// 		++i;
+	// 	map[q] = charset;
+	// }
+}
+
+
 
 char			**Helper::setEnv(Client &client)
 {

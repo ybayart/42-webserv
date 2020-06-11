@@ -11,6 +11,8 @@ void	Handler::handleGet(Client &client)
 	{
 		if (!_helper.getStatusCode(client))
 			_helper.getErrorPage(client);
+		if (client.res.status_code == NOTFOUND)
+			negotiate(client);
 		_helper.fillStatus(client);
 	}
 	else if (client.status == HEADERS)
@@ -51,6 +53,8 @@ void	Handler::handleHead(Client &client)
 	{
 		if (!_helper.getStatusCode(client))
 			_helper.getErrorPage(client);
+		if (client.res.status_code == NOTFOUND)
+			negotiate(client);
 		_helper.fillStatus(client);
 	}
 	else if (client.status == HEADERS)
