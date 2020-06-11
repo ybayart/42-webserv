@@ -65,6 +65,8 @@ void	Handler::handleHead(Client &client)
 			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
+		else if (client.res.status_code == UNAUTHORIZED)
+			client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
@@ -108,6 +110,8 @@ void	Handler::handlePost(Client &client)
 	else if (client.status == HEADERS)
 	{
 		fstat(client.fileFd, &file_info);
+		if (client.res.status_code == UNAUTHORIZED)
+			client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		if (client.res.headers.find("Content-Length") == client.res.headers.end())

@@ -147,7 +147,11 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 		else
 			client.conf["isdir"] = "true";
 	}
-	client.conf["error"] = conf._elmts["server|"]["error"];
+	for (std::map<std::string, std::string>::iterator it(conf._elmts["server|"].begin()); it != conf._elmts["server|"].end(); ++it)
+	{
+		if (client.conf.find(it->first) == client.conf.end())
+			client.conf[it->first] = it->second;
+	}
 	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
@@ -155,27 +159,62 @@ void			Handler::negotiate(Client &client)
 {
 	std::multimap<std::string, std::string> 	languageMap;
 	std::multimap<std::string, std::string> 	charsetMap;
-	int									fd;
+	int									fd = -1;
 	std::string							path;
 
 	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
 		_helper.parseAcceptLanguage(client, languageMap);
-	if (client.req.headers.find("Accept-Charsets") != client.req.headers.end())
+	if (client.req.headers.find("Accept-Charset") != client.req.headers.end())
 		_helper.parseAcceptCharsets(client, charsetMap);
 	if (!languageMap.empty())
 	{
 		for (std::multimap<std::string, std::string>::reverse_iterator it(languageMap.rbegin()); it != languageMap.rend(); ++it)
 		{
-			path = client.conf["path"] + "." + it->second;
-			fd = open(path.c_str(), O_RDONLY);
-			if (fd != -1)
+			if (!charsetMap.empty())
 			{
-				client.conf["path"] = path;
-				client.fileFd = fd;
-				client.res.status_code = OK;
-				return ;
+				for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
+				{
+					path = client.conf["path"] + "." + it->second + "." + it2->second;
+					fd = open(path.c_str(), O_RDONLY);
+					if (fd != -1)
+						break ;
+					path = client.conf["path"] + "." + it2->second + "." + it->second;
+					fd = open(path.c_str(), O_RDONLY);
+					if (fd != -1)
+						break ;
+				}
+			}
+			else
+			{
+				path = client.conf["path"] + "." + it->second;
+				fd = open(path.c_str(), O_RDONLY);
+				if (fd != -1)
+					break ;
+			}
+			if (fd != -1)
+				break ;
+		}
+	}
+	else if (languageMap.empty())
+	{
+		if (!charsetMap.empty())
+		{
+			for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
+			{
+				path = client.conf["path"] + "." + it2->second;
+				fd = open(path.c_str(), O_RDONLY);
+				if (fd != -1)
+					break ;
 			}
 		}
+	}
+	if (fd != -1)
+	{
+		client.conf["path"] = path;
+		if (client.fileFd != -1)
+			close(client.fileFd);
+		client.fileFd = fd;
+		client.res.status_code = OK;
 	}
 }
 
@@ -279,7 +318,8 @@ bool		Handler::readCGIResult(Client &client)
 	char			buffer[BUFFER_SIZE + 1];
 	int				bytes;
 
-	waitpid(client.pid, NULL, 0);
+	if (waitpid(client.pid, NULL, WNOHANG) == 0)
+		return (false);
 	if (client.fileFd == -1)
 		client.fileFd = open(client.tmp_path.c_str(), O_RDONLY);
 	bytes = read(client.fileFd, buffer, BUFFER_SIZE);

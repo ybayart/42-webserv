@@ -225,7 +225,6 @@ void			Helper::parseAcceptLanguage(Client &client, std::multimap<std::string, st
 	std::string							q;
 
 	to_parse = client.req.headers["Accept-Language"];
-	std::cout << to_parse << std::endl;
 	int i = 0;
 	while (to_parse[i] != '\0' && to_parse[i] != '\r')
 	{
@@ -264,35 +263,38 @@ void			Helper::parseAcceptCharsets(Client &client, std::multimap<std::string, st
 	std::string							to_parse;
 	std::string							q;
 
-	to_parse = client.req.headers["Accept-Charsets"];
-	std::cout << to_parse << std::endl;
-	// int i = 0;
-	// while (to_parse[i] != '\0' && to_parse[i] != '\r')
+	to_parse = client.req.headers["Accept-Charset"];
+	int i = 0;
+	while (to_parse[i] != '\0' && to_parse[i] != '\r')
+	{
+		charset.clear();
+		q.clear();
+		while (to_parse[i] && to_parse[i] != ',' && 
+		to_parse[i] != ';' && to_parse[i] != '\r')
+		{
+			charset += to_parse[i];
+			++i;
+		}
+		if (to_parse[i] == ',' || to_parse[i] == '\r')
+			q = "1";
+		else if (to_parse[i] == ';')
+		{
+			i += 3;
+			while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
+			{
+				q += to_parse[i];
+				++i;
+			}
+		}
+		++i;
+		std::pair<std::string, std::string>	pair(q, charset);
+		map.insert(pair);
+	}
+	// for (std::multimap<std::string, std::string>::iterator it(map.begin()); it != map.end(); ++it)
 	// {
-	// 	charset.clear();
-	// 	q.clear();
-	// 	while (to_parse[i] && to_parse[i] != ';' && to_parse[i] != '\r')
-	// 	{
-	// 		charset += to_parse[i];
-	// 		++i;
-	// 	}
-	// 	if (to_parse[i] == ';')
-	// 	{
-	// 		if (to_parse[i + 1] == 'q' && to_parse[i + 2] == '=')
-	// 			i += 3;
-	// 	}
-	// 	while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
-	// 	{
-	// 		q += to_parse[i];
-	// 		++i;
-	// 	}
-	// 	if (to_parse[i] == ',')
-	// 		++i;
-	// 	map[q] = charset;
+	// 	std::cout << it->first + ":" + it->second << std::endl;
 	// }
 }
-
-
 
 char			**Helper::setEnv(Client &client)
 {
@@ -314,7 +316,7 @@ char			**Helper::setEnv(Client &client)
 	else
 		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
 	envMap["SERVER_NAME"] = "localhost";
-	envMap["SERVER_PORT"] = "8080";
+	envMap["SERVER_PORT"] = client.conf["listen"];
 	envMap["REQUEST_URI"] = client.req.uri;
 	envMap["REQUEST_METHOD"] = client.req.method;
 	envMap["REMOTE_ADDR"] = client.ip;

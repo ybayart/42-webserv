@@ -44,14 +44,26 @@ int			Helper::GETStatus(Client &client)
 
 int			Helper::POSTStatus(Client &client)
 {
+	std::string		credential;
+
 	client.res.version = "HTTP/1.1";
 	client.res.status_code = OK;
 	if (client.conf["methods"].find(client.req.method) == std::string::npos)
 		client.res.status_code = NOTALLOWED;
-	else if (client.conf.find("max_body") != client.conf.end()
+	else if (client.conf.find("auth") != client.conf.end())
+	{
+		client.res.status_code = UNAUTHORIZED;
+		if (client.req.headers.find("Authorization") != client.req.headers.end())
+		{
+			credential = decode64(client.req.headers["Authorization"].c_str());
+			if (credential == client.conf["auth"])
+				client.res.status_code = OK;
+		}
+	}
+	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
 	&& client.req.body.size() > atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
-	else
+	if (client.res.status_code == OK)
 	{
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
