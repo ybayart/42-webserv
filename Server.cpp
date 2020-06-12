@@ -1,13 +1,20 @@
 #include "Server.hpp"
 
-Server::Server()
+Server::Server() : _port(-1)
 {
 
 }
 
 Server::~Server()
 {
-	close(_fd);
+	if (_port != -1)
+	{
+		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
+			delete *it;
+		_clients.clear();
+		close(_fd);
+		std::cout << "closed server listening on port " << _port << std::endl;
+	}
 }
 
 int		Server::getMaxFd() const
@@ -37,7 +44,6 @@ int		Server::getOpenFd()
 
 void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 {
-	int		port;
 	int		yes = 1;
 
 	_readSet = readSet;
@@ -47,16 +53,16 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
     setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-	port = atoi(_conf["server|"]["listen"].c_str());
+	_port = atoi(_conf["server|"]["listen"].c_str());
 	_info.sin_family = AF_INET;
 	_info.sin_addr.s_addr = INADDR_ANY;
-	_info.sin_port = htons(port);
+	_info.sin_port = htons(_port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
     listen(_fd, 1000);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
-    std::cout << "Listening on port " << port << std::endl;
+    std::cout << "Listening on port " << _port << std::endl;
 }
 
 void	Server::refuseConnection()
@@ -88,7 +94,7 @@ void	Server::acceptConnection()
 	_clients.push_back(newOne);
 	std::cout << "new connection from " << newOne->ip << ":"
 	<< newOne->port << std::endl;
-	std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
+	std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
 }
 
 int		Server::readRequest(std::vector<Client*>::iterator it)
@@ -106,7 +112,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 		std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
 		delete client;
 		_clients.erase(it);
-		std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
+		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
 		return (0);
 	}
 	else
@@ -163,7 +169,7 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 		std::cout << "done with " << client->ip << ":" << client->port << "\n";
 		delete client;
 		_clients.erase(it);
-		std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
+		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
 		return (0);
 	}
 	return (1);

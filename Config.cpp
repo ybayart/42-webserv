@@ -1,5 +1,7 @@
 #include "Config.hpp"
 
+bool	Config::loop = true;
+
 Config::Config()
 {
 
@@ -8,6 +10,24 @@ Config::Config()
 Config::~Config()
 {
 
+}
+
+void			Config::stop(int dummy)
+{
+	loop = false;
+}
+
+bool			Config::exit(std::vector<Server> &servers)
+{
+	if (loop)
+		return (false);
+	else
+	{
+		std::cout << "\n";
+		servers.clear();
+		std::cout << "exiting...\n";
+		return (true);
+	}
 }
 
 std::string		Config::readFile(char *file)

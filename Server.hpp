@@ -29,6 +29,7 @@ class Server
 	private:
 		int						_fd;
 		int						_maxFd;
+		int						_port;
 		struct sockaddr_in		_info;
 		fd_set					*_readSet;
 		fd_set					*_writeSet;

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ctime>
 #include <string>
 #include <sys/socket.h>
 #include <sys/types.h>
@@ -14,13 +15,13 @@
 #include "Config.hpp"
 #include "Client.hpp"
 
-int	ret_error(std::string error)
+int		ret_error(std::string error)
 {
 	std::cout << error << std::endl;
 	return (1);
 }
 
-int main(int ac, char **av)
+int 	main(int ac, char **av)
 {
 	Config					config;
 	std::vector<Server>		servers;
@@ -30,6 +31,7 @@ int main(int ac, char **av)
 	fd_set					writeSet;
 	fd_set					rSet;
 	fd_set					wSet;
+	struct timeval			timeout;
 
 	if (ac != 2)
 		return (ret_error("Usage: ./webserv config-file"));
@@ -37,18 +39,22 @@ int main(int ac, char **av)
 		if (!config.parse(av[1], servers))
 			return (ret_error("Error: wrong syntax in config file"));
 
+	signal(SIGINT, Config::stop);
+
 	FD_ZERO(&rSet);
 	FD_ZERO(&wSet);
 	FD_ZERO(&readSet);
 	FD_ZERO(&writeSet);
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 0;
 	for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
 		it->init(&readSet, &writeSet, &rSet, &wSet);
 
-	while (1)
+	while (!config.exit(servers))
 	{
 		readSet = rSet;
 		writeSet = wSet;
-		select(config.getMaxFd(servers) + 1, &readSet, &writeSet, NULL, NULL);
+		select(config.getMaxFd(servers) + 1, &readSet, &writeSet, NULL, &timeout);
 		for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
 		{
 			if (FD_ISSET(it->getFd(), &readSet))
