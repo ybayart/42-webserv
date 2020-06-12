@@ -1,8 +1,10 @@
 #include "Client.hpp"
 
-Client::Client(int filed, fd_set *r, fd_set *w)
-: fd(filed), rSet(r), wSet(w), hasBody(false), fileFd(-1), status(PARSING)
+Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
+: fd(filed), fileFd(-1), rSet(r), wSet(w), hasBody(false), status(PARSING)
 {
+	ip = inet_ntoa(info.sin_addr);
+	port = htons(info.sin_port);
 	rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	wBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	memset(rBuf, 0, BUFFER_SIZE + 1);
@@ -12,6 +14,7 @@ Client::Client(int filed, fd_set *r, fd_set *w)
 	chunk.len = 0;
 	chunk.done = false;
 	chunk.found = false;
+	std::cout << "new connection from " << ip << ":" << port << std::endl;
 }
 
 Client::~Client()
@@ -24,6 +27,7 @@ Client::~Client()
 		FD_CLR(fd, rSet);
 	if (FD_ISSET(fd, wSet))
 		FD_CLR(fd, wSet);
+	std::cout << "connection closed from " << ip << ":" << port << "\n";	
 }
 
 int		Client::getFd() const

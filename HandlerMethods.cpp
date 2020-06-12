@@ -3,7 +3,6 @@
 void	Handler::handleGet(Client &client)
 {
 	struct stat	file_info;
-	int			fd;
 	int			bytes;
 	std::string	credential;
 
@@ -46,8 +45,6 @@ void	Handler::handleGet(Client &client)
 void	Handler::handleHead(Client &client)
 {
 	struct stat	file_info;
-	int			fd;
-	int			bytes;
 
 	if (client.status == CODE)
 	{
@@ -78,7 +75,6 @@ void	Handler::handleHead(Client &client)
 void	Handler::handlePost(Client &client)
 {
 	struct stat	file_info;
-	int			fd;
 	int			bytes;
 	int			size;
 
@@ -153,9 +149,7 @@ void	Handler::handlePost(Client &client)
 
 void	Handler::handlePut(Client &client)
 {
-	int 			ret;
 	std::string		path;
-	struct stat		file_info;
 	std::string		body;
 
 	if (client.status == PARSING)

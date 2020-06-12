@@ -13,7 +13,7 @@ Server::~Server()
 			delete *it;
 		_clients.clear();
 		close(_fd);
-		std::cout << "closed server listening on port " << _port << std::endl;
+		std::cout << "closed server listening on port " << _port << "\n";
 	}
 }
 
@@ -62,7 +62,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
-    std::cout << "Listening on port " << _port << std::endl;
+    std::cout << "Listening on port " << _port << "...\n";
 }
 
 void	Server::refuseConnection()
@@ -88,12 +88,8 @@ void	Server::acceptConnection()
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd > _maxFd)
 		_maxFd = fd;
-	newOne = new Client(fd, _rSet, _wSet);
-	newOne->ip = inet_ntoa(info.sin_addr);
-	newOne->port = htons(info.sin_port);
+	newOne = new Client(fd, _rSet, _wSet, info);
 	_clients.push_back(newOne);
-	std::cout << "new connection from " << newOne->ip << ":"
-	<< newOne->port << std::endl;
 	std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
 }
 
@@ -109,7 +105,6 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	bytes += ret;
 	if (ret <= 0)
 	{
-		std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
 		delete client;
 		_clients.erase(it);
 		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
@@ -166,7 +161,6 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 	}
 	if (client->status == DONE)
 	{
-		std::cout << "done with " << client->ip << ":" << client->port << "\n";
 		delete client;
 		_clients.erase(it);
 		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";

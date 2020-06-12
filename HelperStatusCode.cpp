@@ -61,7 +61,7 @@ int			Helper::POSTStatus(Client &client)
 		}
 	}
 	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
-	&& client.req.body.size() > atoi(client.conf["max_body"].c_str()))
+	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
 	if (client.res.status_code == OK)
 	{
@@ -87,7 +87,7 @@ int			Helper::PUTStatus(Client &client)
 	if (client.conf["methods"].find(client.req.method) == std::string::npos)
 		client.res.status_code = NOTALLOWED;
 	else if (client.conf.find("max_body") != client.conf.end()
-	&& client.req.body.size() > atoi(client.conf["max_body"].c_str()))
+	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
 	else
 	{

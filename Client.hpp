@@ -35,9 +35,9 @@ class Client
 	public:	
 		struct t_chunk
 		{
-			int		len;
-			bool	done;
-			bool	found;
+			unsigned int	len;
+			bool			done;
+			bool			found;
 		};
 
 	private:
@@ -61,7 +61,7 @@ class Client
 		t_chunk		chunk;
 
 	public:
-		Client(int filed, fd_set *r, fd_set *w);
+		Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info);
 		~Client();
 
 		int		getFd() const;

@@ -189,7 +189,7 @@ std::string		Helper::decode64(const char *data)
 	while (*data != ' ')
 		data++;
 	data++;
-	int len = strlen(data);
+	unsigned int len = strlen(data);
 	unsigned char* p = (unsigned char*)data;
     int pad = len > 0 && (len % 4 || p[len - 1] == '=');
     const size_t L = ((len + 3) / 4 - pad) * 4;

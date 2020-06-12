@@ -12,8 +12,9 @@ Config::~Config()
 
 }
 
-void			Config::stop(int dummy)
+void			Config::stop(int sig)
 {
+	(void)sig;
 	loop = false;
 }
 
@@ -23,9 +24,8 @@ bool			Config::exit(std::vector<Server> &servers)
 		return (false);
 	else
 	{
-		std::cout << "\n";
+		std::cout << "\n" << "exiting...\n";
 		servers.clear();
-		std::cout << "exiting...\n";
 		return (true);
 	}
 }
@@ -148,7 +148,7 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 			key = line.substr(0, line.find(' '));
 			value = line.substr(line.find(' ') + 1);
 			value.pop_back();
-			std::cout << key + " : " + value + " / c: " + context << std::endl;
+			// std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
 			config[context].insert(tmp);
 		}

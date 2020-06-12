@@ -64,7 +64,6 @@ void			Handler::parseBody(Client &client)
 void			Handler::getBody(Client &client)
 {
 	int			to_read;
-	int			ret;
 	int			bytes;
 
 	to_read = atoi(client.req.headers["Content-Length"].c_str());
@@ -81,9 +80,6 @@ void			Handler::getBody(Client &client)
 
 void			Handler::dechunkBody(Client &client)
 {
-	int				bytes;
-	int				ret;
-
 	if (strstr(client.rBuf, "\r\n") && client.chunk.found == false)
 	{
 		client.chunk.len = _helper.findLen(client);
@@ -339,7 +335,7 @@ bool		Handler::readCGIResult(Client &client)
 
 void		Handler::parseCGIResult(Client &client)
 {
-	int				pos;
+	size_t	pos;
 
 	pos = client.file_str.find("Status");
 	if (pos != std::string::npos)
