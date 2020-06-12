@@ -61,7 +61,7 @@ void	Client::setWriteState(bool state)
 void	Client::setToStandBy()
 {
 	// std::cout << "standing by\n";
-	std::cout << ip << ":" << port << ": " << req.method << ": " << "DONE" << std::endl;
+	// std::cout << ip << ":" << port << ": " << req.method << ": " << "DONE" << std::endl;
 	status = STANDBY;
 	setReadState(true);
 	close(fileFd);

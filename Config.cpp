@@ -27,35 +27,65 @@ std::string		Config::readFile(char *file)
 	return (parsed);
 }
 
-int		Config::parse(char *file)
+int				Config::parse(char *file, std::vector<Server> &servers)
 {
 	std::string			context;
 	std::stringstream	is;
 	std::string			parsed;
 	std::string			line;
+	Server				server;
+	config				tmp;
 
 	parsed = readFile(file);
+
 	if (parsed == "")
-		return (-1);
+		return (0);
 	is << parsed;
 	while (!is.eof())
 	{
 		std::getline(is, line);
 		while (line[0] == ' ' || line[0] == '\t')
 			line.erase(line.begin());
-		if (line.back() == '{')
-			if (getContent(is, context, line) == -1)
-				return (-1);
+		if (line == "server {" || line == "server\t{")
+		{
+			if (!getContent(is, context, line, tmp))
+				return (0);
+			else
+			{
+				if (!checkContent(tmp))
+					return (0);
+				else
+				{
+					server._conf = tmp;
+					servers.push_back(server);
+					tmp.clear();
+					context.clear();
+				}
+			}
+		}
 	}
-	return (checkContent());
+	return (1);
 }
 
-int		Config::getContent(std::stringstream &is, std::string &context, std::string prec)
+int				Config::getMaxFd(std::vector<Server> &servers)
+{
+	int		max = 0;
+	int		fd;
+
+	for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
+	{
+		fd = it->getMaxFd();
+		if (fd > max)
+			max = fd;
+	}
+	return (max);
+}
+
+int				Config::getContent(std::stringstream &is, std::string &context, std::string prec, config &config)
 {
 	std::string			line;
 	std::string			key;
 	std::string			value;
-	elmt				cur;
 
 	prec.pop_back();
 	while (prec.back() == ' ' || prec.back() == '\t')
@@ -78,9 +108,9 @@ int		Config::getContent(std::stringstream &is, std::string &context, std::string
 			break ;
 		}
 		if (line.back() != ';' && line.back() != '{')
-			return (-1);
+			return (0);
 		if (line.back() == '{')
-			getContent(is, context, line);
+			getContent(is, context, line, config);
 		else
 		{
 			key = line.substr(0, line.find(' '));
@@ -88,18 +118,18 @@ int		Config::getContent(std::stringstream &is, std::string &context, std::string
 			value.pop_back();
 			std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
-			_elmts[context].insert(tmp);
+			config[context].insert(tmp);
 		}
 	}
 	if (line != "}")
-		return (-1);
-	return (0);
+		return (0);
+	return (1);
 }
 
 //TO COMPLETE
-int		Config::checkContent()
+int				Config::checkContent(config &tmp)
 {
-	if (_elmts.find("server|") == _elmts.end())
-		return (-1);
-	return (0);
+	if (tmp.find("server|") == tmp.end())
+		return (0);
+	return (1);
 }

@@ -1,75 +1,58 @@
-#include "Listener.hpp"
+#include "Server.hpp"
 
-Listener::Listener()
+Server::Server()
 {
-	int yes = 1;
 
-	FD_ZERO(&_rSet);
-	FD_ZERO(&_wSet);
-	FD_ZERO(&_readSet);
-	FD_ZERO(&_writeSet);
-	_fd = socket(PF_INET, SOCK_STREAM, 0);
-    setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 }
 
-Listener::~Listener()
+Server::~Server()
 {
 	close(_fd);
 }
 
-int		Listener::config(char *file)
-{
-	return (_conf.parse(file));
-}
-
-int		Listener::getMaxFd() const
+int		Server::getMaxFd() const
 {
 	return (_maxFd);
 }
 
-void	Listener::init()
+int		Server::getFd() const
 {
-	Client	*server;
-	int		port;
+	return (_fd);
+}
 
-	port = atoi(_conf._elmts["server|"]["listen"].c_str());
+void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
+{
+	int		port;
+	int		yes = 1;
+
+	_readSet = readSet;
+	_writeSet = writeSet;
+	_wSet = wSet;
+	_rSet = rSet;
+
+	_fd = socket(PF_INET, SOCK_STREAM, 0);
+    setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+	port = atoi(_conf["server|"]["listen"].c_str());
 	_info.sin_family = AF_INET;
 	_info.sin_addr.s_addr = INADDR_ANY;
 	_info.sin_port = htons(port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
     listen(_fd, 1000);
-	server = new Client(_fd, &_rSet, &_wSet);
-	_clients[_fd] = server;
+	fcntl(_fd, F_SETFL, O_NONBLOCK);
+	FD_SET(_fd, _rSet);
     _maxFd = _fd;
+    std::cout << "Listening on port " << port << std::endl;
 }
 
-void	Listener::select()
+bool	Server::checkIfClient(int fd)
 {
-    _readSet = _rSet;
-	_writeSet = _wSet;
-	::select(_maxFd + 1, &_readSet, &_writeSet, NULL, NULL);
-}
-
-void	Listener::handleRequest(int fd)
-{
-	Client	*client;
-
 	if (_clients.find(fd) != _clients.end())
-		client = _clients[fd];
+		return (true);
 	else
-		return ;
-    if (FD_ISSET(client->fd, &_readSet))
-	{
-		if (client->fd == this->_fd)
-			acceptConnection();
-		else
-			readRequest(client);
-	}
-	else if (FD_ISSET(client->fd, &_writeSet) && client->fd != this->_fd)
-		writeResponse(client);
+		return (false);
 }
 
-void	Listener::acceptConnection()
+void	Server::acceptConnection()
 {
 	int 				fd;
 	struct sockaddr_in	info;
@@ -80,20 +63,22 @@ void	Listener::acceptConnection()
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd > _maxFd)
 		_maxFd = fd;
-	newOne = new Client(fd, &_rSet, &_wSet);
+	newOne = new Client(fd, _rSet, _wSet);
 	newOne->ip = inet_ntoa(info.sin_addr);
 	newOne->port = htons(info.sin_port);
 	_clients[fd] = newOne;
 	std::cout << "new connection from " << newOne->ip << ":"
 	<< newOne->port << std::endl;
-	std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
+	std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
 }
 
-void	Listener::readRequest(Client *client)
+void	Server::readRequest(int fd)
 {
 	int 		bytes;
 	int			ret;
+	Client		*client;
 
+	client = _clients[fd];
 	bytes = strlen(client->rBuf);
 	ret = read(client->fd, client->rBuf + bytes, BUFFER_SIZE - bytes);
 	bytes += ret;
@@ -106,7 +91,7 @@ void	Listener::readRequest(Client *client)
 			std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
 			_clients.erase(client->fd);
 			delete client;
-			std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
+			std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
 		}
 	}
 	else
@@ -128,12 +113,14 @@ void	Listener::readRequest(Client *client)
 	}
 }
 
-void	Listener::writeResponse(Client *client)
+void	Server::writeResponse(int fd)
 {
 	int				bytes;
 	int				size;
 	std::string		tmp;
+	Client			*client;
 
+	client = _clients[fd];
 	size = strlen(client->wBuf);
 	if (size > 0)
 	{
@@ -160,12 +147,12 @@ void	Listener::writeResponse(Client *client)
 		std::cout << "done with " << client->ip << ":" << client->port << "\n";
 		_clients.erase(client->fd);
 		delete client;
-		std::cout << "nb of clients: " << _clients.size() - 1 << std::endl;
+		std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
 	}
 
 }
 
-int		Listener::getTimeDiff(std::string start)
+int		Server::getTimeDiff(std::string start)
 {
 	struct tm		start_tm;
 	struct tm		*now_tm;

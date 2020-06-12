@@ -1,5 +1,5 @@
-#ifndef LISTENER_HPP
-#define LISTENER_HPP
+#ifndef Server_HPP
+#define Server_HPP
 
 #include <iostream>
 #include <vector>
@@ -16,40 +16,42 @@
 #include <signal.h>
 #include <map>
 #include "Handler.hpp"
-#include "Config.hpp"
 #include "Client.hpp"
 
 #define TIMEOUT 10
 
-class Listener
+class Server
 {
+	friend class Config;
+	typedef std::map<std::string, std::string> 	elmt;
+	typedef std::map<std::string, elmt>			config;
+
 	private:
 		int						_fd;
 		int						_maxFd;
 		struct sockaddr_in		_info;
-		fd_set					_readSet;
-		fd_set					_writeSet;
-		fd_set					_rSet;
-		fd_set					_wSet;
+		fd_set					*_readSet;
+		fd_set					*_writeSet;
+		fd_set					*_rSet;
+		fd_set					*_wSet;
 		Handler					_handler;
-		Config					_conf;
+		config					_conf;
 
 	public:
 		std::map<int, Client*>		_clients;
 		
-		Listener();
-		~Listener();
+		Server();
+		~Server();
 
 		int		getMaxFd() const;
-		int		config(char *file);
-		void	init();
-		void	select();
-		void	handleRequest(int fd);
+		int		getFd() const;
+		void	init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
+		bool	checkIfClient(int fd);
+		void	acceptConnection();
+		void	readRequest(int fd);
+		void	writeResponse(int fd);
 
 	private:
-		void	acceptConnection();
-		void	readRequest(Client *client);
-		void	writeResponse(Client *client);
 		int		getTimeDiff(std::string start);
 
 };

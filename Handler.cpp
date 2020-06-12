@@ -10,7 +10,7 @@ Handler::~Handler()
 	
 }
 
-void			Handler::parseRequest(Client &client, Config &conf)
+void			Handler::parseRequest(Client &client, config &conf)
 {
 	std::stringstream	is;
 	Request				request;
@@ -105,7 +105,7 @@ void			Handler::dechunkBody(Client &client)
 	}
 }
 
-void			Handler::getConf(Client &client, Request &req, Config &conf)
+void			Handler::getConf(Client &client, Request &req, config &conf)
 {
 	std::map<std::string, std::string> elmt;
 	std::string		tmp;
@@ -114,23 +114,23 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 
 	if (!req.valid)
 	{
-		client.conf["error"] = conf._elmts["server|"]["error"];
+		client.conf["error"] = conf["server|"]["error"];
 		return ;
 	}
 	file = req.uri.substr(req.uri.find_last_of('/') + 1, req.uri.find('?'));
 	tmp = req.uri;
 	do
 	{
-		if (conf._elmts.find("server|location " + tmp + "|") != conf._elmts.end())
+		if (conf.find("server|location " + tmp + "|") != conf.end())
 		{
-			elmt = conf._elmts["server|location " + tmp + "|"];
+			elmt = conf["server|location " + tmp + "|"];
 			break ;
 		}
 		tmp = tmp.substr(0, tmp.find_last_of('/'));
 	} while (tmp != "");
 	if (elmt.size() == 0)
-		if (conf._elmts.find("server|location /|") != conf._elmts.end())
-			elmt = conf._elmts["server|location /|"];
+		if (conf.find("server|location /|") != conf.end())
+			elmt = conf["server|location /|"];
 	if (elmt.size() > 0)
 	{
 		client.conf = elmt;
@@ -147,7 +147,7 @@ void			Handler::getConf(Client &client, Request &req, Config &conf)
 		else
 			client.conf["isdir"] = "true";
 	}
-	for (std::map<std::string, std::string>::iterator it(conf._elmts["server|"].begin()); it != conf._elmts["server|"].end(); ++it)
+	for (std::map<std::string, std::string>::iterator it(conf["server|"].begin()); it != conf["server|"].end(); ++it)
 	{
 		if (client.conf.find(it->first) == client.conf.end())
 			client.conf[it->first] = it->second;

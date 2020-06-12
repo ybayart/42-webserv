@@ -22,7 +22,6 @@
 #include <sys/errno.h>
 #include "messages.h"
 #include "statusCode.h"
-#include "Config.hpp"
 #include "Client.hpp"
 
 class Helper

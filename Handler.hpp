@@ -21,19 +21,21 @@
 #include <sys/errno.h>
 #include "messages.h"
 #include "statusCode.h"
-#include "Config.hpp"
 #include "Client.hpp"
 #include "Helper.hpp"
 
 class Handler
 {
+	typedef std::map<std::string, std::string> 	elmt;
+	typedef std::map<std::string, elmt>			config;
+
 	public:
 		Handler();
 		~Handler();
 
 		Helper	_helper;
 
-		void			parseRequest(Client &client, Config &conf);
+		void			parseRequest(Client &client, config &conf);
 		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
 
@@ -44,7 +46,7 @@ class Handler
 		void			handlePut(Client &client);
 		void			handleBadRequest(Client &client);
 
-		void			getConf(Client &client, Request &req, Config &conf);
+		void			getConf(Client &client, Request &req, config &conf);
 		void			negotiate(Client &client);
 		bool			checkSyntax(const Request &request);
 		void			parseHeaders(std::stringstream &buf, Request &req);
