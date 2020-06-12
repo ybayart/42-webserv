@@ -23,7 +23,7 @@ void	Handler::handleGet(Client &client)
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
 		else if (client.res.status_code == UNAUTHORIZED)
-			client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
+			client.res.headers["WWW-Authenticate"] = "Basic";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
 		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
@@ -35,10 +35,7 @@ void	Handler::handleGet(Client &client)
 		if (bytes >= 0)
 			client.wBuf[bytes] = '\0';
 		if (bytes == 0)
-		{
-			close(client.fileFd);
 			client.setToStandBy();
-		}
 	}
 }
 
@@ -125,10 +122,7 @@ void	Handler::handlePost(Client &client)
 			bytes = read(client.fileFd, client.wBuf + size, BUFFER_SIZE - size);
 			client.wBuf[bytes + size] = '\0';
 			if (bytes == 0)
-			{
-				close(client.fileFd);
 				client.setToStandBy();
-			}
 		}
 		else
 		{
@@ -139,10 +133,7 @@ void	Handler::handlePost(Client &client)
 			if (bytes < size)
 				client.file_str = client.file_str.substr(bytes);
 			else
-			{
-				client.file_str.clear();
 				client.setToStandBy();
-			}
 		}
 	}
 }

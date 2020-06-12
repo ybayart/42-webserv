@@ -15,6 +15,8 @@
 #include "Config.hpp"
 #include "Client.hpp"
 
+std::vector<Server>		g_servers;
+
 int		ret_error(std::string error)
 {
 	std::cout << error << std::endl;
@@ -24,7 +26,6 @@ int		ret_error(std::string error)
 int 	main(int ac, char **av)
 {
 	Config					config;
-	std::vector<Server>		servers;
 	Client					*client;
 
 	fd_set					readSet;
@@ -36,30 +37,30 @@ int 	main(int ac, char **av)
 	if (ac != 2)
 		return (ret_error("Usage: ./webserv config-file"));
 	else
-		if (!config.parse(av[1], servers))
+		if (!config.parse(av[1], g_servers))
 			return (ret_error("Error: wrong syntax in config file"));
 
-	signal(SIGINT, Config::stop);
+	signal(SIGINT, Config::exit);
 
 	FD_ZERO(&rSet);
 	FD_ZERO(&wSet);
 	FD_ZERO(&readSet);
 	FD_ZERO(&writeSet);
-	timeout.tv_sec = 0;
+	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
-	for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
+	for (std::vector<Server>::iterator it(g_servers.begin()); it != g_servers.end(); ++it)
 		it->init(&readSet, &writeSet, &rSet, &wSet);
 
-	while (!config.exit(servers))
+	while (1)
 	{
 		readSet = rSet;
 		writeSet = wSet;
-		select(config.getMaxFd(servers) + 1, &readSet, &writeSet, NULL, &timeout);
-		for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
+		select(config.getMaxFd(g_servers) + 1, &readSet, &writeSet, NULL, &timeout);
+		for (std::vector<Server>::iterator it(g_servers.begin()); it != g_servers.end(); ++it)
 		{
 			if (FD_ISSET(it->getFd(), &readSet))
 			{
-				if (config.getOpenFd(servers) > MAX_FD)
+				if (config.getOpenFd(g_servers) > MAX_FD)
 					it->refuseConnection();
 				else
 					it->acceptConnection();

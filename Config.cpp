@@ -1,6 +1,6 @@
 #include "Config.hpp"
 
-bool	Config::loop = true;
+extern	std::vector<Server> g_servers;
 
 Config::Config()
 {
@@ -12,22 +12,13 @@ Config::~Config()
 
 }
 
-void			Config::stop(int sig)
+void			Config::exit(int sig)
 {
 	(void)sig;
-	loop = false;
-}
 
-bool			Config::exit(std::vector<Server> &servers)
-{
-	if (loop)
-		return (false);
-	else
-	{
-		std::cout << "\n" << "exiting...\n";
-		servers.clear();
-		return (true);
-	}
+	std::cout << "\n" << "exiting...\n";
+	g_servers.clear();
+	::exit(0);
 }
 
 std::string		Config::readFile(char *file)

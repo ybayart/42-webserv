@@ -77,6 +77,7 @@ void	Client::setToStandBy()
 	fileFd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
 	hasBody = false;
+	file_str.clear();
 	conf.clear();
 	req.body.clear();
 	res.status_code.clear();
