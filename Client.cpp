@@ -26,6 +26,11 @@ Client::~Client()
 		FD_CLR(fd, wSet);
 }
 
+int		Client::getFd() const
+{
+	return (fd);
+}
+
 bool	Client::getReadState()
 {
 	if (FD_ISSET(fd, rSet))

@@ -81,6 +81,18 @@ int				Config::getMaxFd(std::vector<Server> &servers)
 	return (max);
 }
 
+int				Config::getOpenFd(std::vector<Server> &servers)
+{
+	int		nb = 0;
+
+	for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
+	{
+		nb += 1;
+		nb += it->getOpenFd();
+	}
+	return (nb);
+}
+
 int				Config::getContent(std::stringstream &is, std::string &context, std::string prec, config &config)
 {
 	std::string			line;

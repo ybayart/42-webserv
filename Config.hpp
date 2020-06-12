@@ -11,6 +11,8 @@
 #include <iostream>
 #include "Server.hpp"
 
+#define MAX_FD 256 - 20
+
 class Config
 {
 	typedef std::map<std::string, std::string> 	elmt;
@@ -24,6 +26,7 @@ class Config
 		void		init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
 		void		select(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
 		int			getMaxFd(std::vector<Server> &Servers);
+		int			getOpenFd(std::vector<Server> &servers);
 
 	private:
 		std::string	readFile(char *file);

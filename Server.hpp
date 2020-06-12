@@ -38,18 +38,19 @@ class Server
 		config					_conf;
 
 	public:
-		std::map<int, Client*>		_clients;
+		std::vector<Client*>	_clients;
 		
 		Server();
 		~Server();
 
 		int		getMaxFd() const;
 		int		getFd() const;
+		int		getOpenFd();
 		void	init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
-		bool	checkIfClient(int fd);
+		void	refuseConnection();
 		void	acceptConnection();
-		void	readRequest(int fd);
-		void	writeResponse(int fd);
+		int		readRequest(std::vector<Client*>::iterator it);
+		int		writeResponse(std::vector<Client*>::iterator it);
 
 	private:
 		int		getTimeDiff(std::string start);

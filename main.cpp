@@ -12,6 +12,7 @@
 #include <signal.h>
 #include "Server.hpp"
 #include "Config.hpp"
+#include "Client.hpp"
 
 int	ret_error(std::string error)
 {
@@ -23,6 +24,7 @@ int main(int ac, char **av)
 {
 	Config					config;
 	std::vector<Server>		servers;
+	Client					*client;
 
 	fd_set					readSet;
 	fd_set					writeSet;
@@ -47,23 +49,25 @@ int main(int ac, char **av)
 		readSet = rSet;
 		writeSet = wSet;
 		select(config.getMaxFd(servers) + 1, &readSet, &writeSet, NULL, NULL);
-		for (int fd = 0; fd <= config.getMaxFd(servers); ++fd)
+		for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
 		{
-			for (std::vector<Server>::iterator it(servers.begin()); it != servers.end(); ++it)
+			if (FD_ISSET(it->getFd(), &readSet))
 			{
-				if (FD_ISSET(fd, &readSet))
-				{
-					if (fd == it->getFd())
-						it->acceptConnection();
-					else if (it->checkIfClient(fd))
-						it->readRequest(fd);
-				}
-				if (FD_ISSET(fd, &writeSet))
-				{
-					if (it->checkIfClient(fd))
-						it->writeResponse(fd);
-				}
+				if (config.getOpenFd(servers) > MAX_FD)
+					it->refuseConnection();
+				else
+					it->acceptConnection();
 			}
+			for (std::vector<Client*>::iterator it2(it->_clients.begin()); it2 != it->_clients.end(); ++it2)
+			{
+				client = *it2;
+				if (FD_ISSET(client->getFd(), &readSet))
+					if (!it->readRequest(it2))
+						break ;
+				if (FD_ISSET(client->getFd(), &writeSet))
+					if (!it->writeResponse(it2))
+						break ;
+			}	
 		}
 	}
 	return(0);

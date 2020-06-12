@@ -276,8 +276,8 @@ void			Handler::execCGI(Client &client)
 	int				ret;
 	int				tubes[2];
 	int				bytes;
-	std::string		dir;
 	int				file_tmp;
+	static int		tmp_id = 0;
 
 	if (client.conf.find("exec") != client.conf.end())
 		path = client.conf["exec"];
@@ -288,7 +288,8 @@ void			Handler::execCGI(Client &client)
 	args[1] = strdup(client.conf["path"].c_str());
 	args[2] = NULL;
 	env = _helper.setEnv(client);
-	client.tmp_path = "/tmp/cgi" + client.lastDate.substr(client.lastDate.size() - 7, 2) + ".tmp";
+	client.tmp_path = "/tmp/cgi" + std::to_string(tmp_id) + ".tmp";
+	++tmp_id;
 	// std::cout << "tmp: " << client.tmp_path << "\n";
 	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);

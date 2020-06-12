@@ -15,7 +15,7 @@
 #include "map"
 #include "messages.h"
 
-#define BUFFER_SIZE 50000
+#define BUFFER_SIZE 4096
 
 #define CODE 	1
 #define HEADERS 2
@@ -64,6 +64,7 @@ class Client
 		Client(int filed, fd_set *r, fd_set *w);
 		~Client();
 
+		int		getFd() const;
 		bool	getReadState();
 		bool	getWriteState();
 		void	setReadState(bool state);

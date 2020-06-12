@@ -20,6 +20,21 @@ int		Server::getFd() const
 	return (_fd);
 }
 
+int		Server::getOpenFd()
+{
+	int 	nb = 0;
+	Client	*client;
+
+	for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
+	{
+		client = *it;
+		nb += 1;
+		if (client->fileFd != -1)
+			nb += 1;
+	}
+	return (nb);
+}
+
 void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 {
 	int		port;
@@ -44,12 +59,16 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     std::cout << "Listening on port " << port << std::endl;
 }
 
-bool	Server::checkIfClient(int fd)
+void	Server::refuseConnection()
 {
-	if (_clients.find(fd) != _clients.end())
-		return (true);
-	else
-		return (false);
+	int 				fd;
+	struct sockaddr_in	info;
+	socklen_t			len;
+
+
+	fd = accept(_fd, (struct sockaddr *)&info, &len);
+	close(fd);
+	std::cout << "fd limit reached, refusing connection\n";
 }
 
 void	Server::acceptConnection()
@@ -66,33 +85,29 @@ void	Server::acceptConnection()
 	newOne = new Client(fd, _rSet, _wSet);
 	newOne->ip = inet_ntoa(info.sin_addr);
 	newOne->port = htons(info.sin_port);
-	_clients[fd] = newOne;
+	_clients.push_back(newOne);
 	std::cout << "new connection from " << newOne->ip << ":"
 	<< newOne->port << std::endl;
 	std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
 }
 
-void	Server::readRequest(int fd)
+int		Server::readRequest(std::vector<Client*>::iterator it)
 {
 	int 		bytes;
 	int			ret;
 	Client		*client;
 
-	client = _clients[fd];
+	client = *it;
 	bytes = strlen(client->rBuf);
 	ret = read(client->fd, client->rBuf + bytes, BUFFER_SIZE - bytes);
 	bytes += ret;
 	if (ret <= 0)
 	{
-		if (ret == -1)
-			std::cout << "reading error" << std::endl;
-		else
-		{
-			std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
-			_clients.erase(client->fd);
-			delete client;
-			std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
-		}
+		std::cout << "connection closed from " << client->ip << ":" << client->port << "\n";
+		delete client;
+		_clients.erase(it);
+		std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
+		return (0);
 	}
 	else
 	{
@@ -110,17 +125,18 @@ void	Server::readRequest(int fd)
 			client->status = PARSING;
 			_handler.parseBody(*client);
 		}
+		return (1);
 	}
 }
 
-void	Server::writeResponse(int fd)
+int		Server::writeResponse(std::vector<Client*>::iterator it)
 {
 	int				bytes;
 	int				size;
 	std::string		tmp;
 	Client			*client;
 
-	client = _clients[fd];
+	client = *it;
 	size = strlen(client->wBuf);
 	if (size > 0)
 	{
@@ -145,11 +161,12 @@ void	Server::writeResponse(int fd)
 	if (client->status == DONE)
 	{
 		std::cout << "done with " << client->ip << ":" << client->port << "\n";
-		_clients.erase(client->fd);
 		delete client;
+		_clients.erase(it);
 		std::cout << "nb of clients: " << _clients.size() << " [" << _conf["server|"]["listen"] << "]\n";
+		return (0);
 	}
-
+	return (1);
 }
 
 int		Server::getTimeDiff(std::string start)
