@@ -34,9 +34,10 @@ int			Helper::GETStatus(Client &client)
 	if (client.res.status_code == OK)
 	{
 		client.fileFd = open(client.conf["path"].c_str(), O_RDONLY);
-		if (client.fileFd == -1 || client.conf["isdir"] == "true")
+		if (client.fileFd == -1)
 			client.res.status_code = NOTFOUND;
-		else
+		if ((client.conf["isdir"] == "true" && client.conf["listing"] == "on")
+		|| client.fileFd != -1)
 			return (1);
 	}
 	return (0);

@@ -19,6 +19,7 @@
 #include <map>
 #include <sys/stat.h>
 #include <sys/errno.h>
+#include <dirent.h>
 #include "messages.h"
 #include "statusCode.h"
 #include "Client.hpp"
@@ -48,6 +49,7 @@ class Handler
 
 		void			getConf(Client &client, Request &req, config &conf);
 		void			negotiate(Client &client);
+		void			createListing(Client &client);
 		bool			checkSyntax(const Request &request);
 		void			parseHeaders(std::stringstream &buf, Request &req);
 		void			getBody(Client &client);

@@ -130,24 +130,25 @@ void			Handler::getConf(Client &client, Request &req, config &conf)
 	if (elmt.size() > 0)
 	{
 		client.conf = elmt;
+		client.conf["path"] = req.uri;
 		if (elmt.find("root") != elmt.end())
-			client.conf["path"] = req.uri.replace(0, tmp.size(), elmt["root"]);
-		else
-			client.conf["path"] = req.uri;
-	}
-	lstat(client.conf["path"].c_str(), &info);
-	if (S_ISDIR(info.st_mode))
-	{
-		if (elmt.find("index") != elmt.end())
-			client.conf["path"] += "/" + elmt["index"];
-		else
-			client.conf["isdir"] = "true";
+			client.conf["path"].replace(0, tmp.size(), elmt["root"]);
 	}
 	for (std::map<std::string, std::string>::iterator it(conf["server|"].begin()); it != conf["server|"].end(); ++it)
 	{
 		if (client.conf.find(it->first) == client.conf.end())
 			client.conf[it->first] = it->second;
 	}
+	lstat(client.conf["path"].c_str(), &info);
+	if (S_ISDIR(info.st_mode))
+	{
+		if ((client.conf["listing"][0] != '\0' && client.conf["listing"] == "on")
+		|| client.conf.find("index") == elmt.end())
+			client.conf["isdir"] = "true";
+		else
+			client.conf["path"] += "/" + elmt["index"];
+	}
+
 	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
@@ -214,6 +215,37 @@ void			Handler::negotiate(Client &client)
 	}
 }
 
+void			Handler::createListing(Client &client)
+{
+	DIR				*dir;
+	std::string		list;
+	struct dirent	*cur;
+	int				tmp;
+
+	dir = opendir(client.conf["path"].c_str());
+	list = "<html>\n<body>\n";
+	list += "<h1>Directory listing</h1>\n";
+	while ((cur = readdir(dir)) != NULL)
+	{
+		if (cur->d_name[0] != '.')
+		{
+			list += "<a href=\"" + client.req.uri;
+			if (client.req.uri != "/")
+				list += "/";
+			list += cur->d_name;
+			list += "\">";
+			list += cur->d_name;
+			list += "</a><br>\n";
+		}
+	}
+	list += "</body>\n</html>\n";
+	std::cout << list << std::endl;
+	tmp = open("/tmp/listing.tmp", O_WRONLY | O_CREAT, 0666);
+	write(tmp, list.c_str(), list.size());
+	close(tmp);
+	client.fileFd = open("/tmp/listing.tmp", O_RDONLY);
+}
+
 void			Handler::dispatcher(Client &client)
 {
 	typedef void	(Handler::*ptr)(Client &client);
@@ -273,7 +305,6 @@ void			Handler::execCGI(Client &client)
 	int				tubes[2];
 	int				bytes;
 	int				file_tmp;
-	static int		tmp_id = 0;
 
 	if (client.conf.find("exec") != client.conf.end())
 		path = client.conf["exec"];
@@ -284,8 +315,7 @@ void			Handler::execCGI(Client &client)
 	args[1] = strdup(client.conf["path"].c_str());
 	args[2] = NULL;
 	env = _helper.setEnv(client);
-	client.tmp_path = "/tmp/cgi" + std::to_string(tmp_id) + ".tmp";
-	++tmp_id;
+	client.tmp_path = "/tmp/cgi.tmp";
 	// std::cout << "tmp: " << client.tmp_path << "\n";
 	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);

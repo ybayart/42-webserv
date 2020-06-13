@@ -12,6 +12,9 @@ void	Handler::handleGet(Client &client)
 			_helper.getErrorPage(client);
 		if (client.res.status_code == NOTFOUND)
 			negotiate(client);
+		else if (client.res.status_code == OK)
+			if (client.conf["isdir"] == "true" && client.conf["listing"] == "on")
+				createListing(client);
 		_helper.fillStatus(client);
 	}
 	else if (client.status == HEADERS)
