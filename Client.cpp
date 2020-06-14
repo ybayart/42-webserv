@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
-: fd(filed), fileFd(-1), rSet(r), wSet(w), hasBody(false), status(PARSING)
+: fd(filed), fileFd(-1), rSet(r), wSet(w), status(PARSING)
 {
 	ip = inet_ntoa(info.sin_addr);
 	port = htons(info.sin_port);
@@ -70,13 +70,12 @@ void	Client::setWriteState(bool state)
 void	Client::setToStandBy()
 {
 	// std::cout << "standing by\n";
-	// std::cout << ip << ":" << port << ": " << req.method << ": " << "DONE" << std::endl;
+	std::cout << ip << ":" << port << ": " << req.method << ": " << "DONE" << std::endl;
 	status = STANDBY;
 	setReadState(true);
 	close(fileFd);
 	fileFd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
-	hasBody = false;
 	file_str.clear();
 	conf.clear();
 	req.body.clear();

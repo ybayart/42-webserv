@@ -16,21 +16,39 @@ void	Handler::handleGet(Client &client)
 			createListing(client);
 		else if (client.res.status_code == NOTFOUND)
 			negotiate(client);
-		_helper.fillStatus(client);
+		if (client.conf.find("CGI") != client.conf.end()
+		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
+		&& client.res.status_code == OK)
+		{
+			client.fileFd = -1;
+			execCGI(client);
+			client.status = CGI;
+		}
+		else 
+			_helper.fillStatus(client);
+	}
+	else if (client.status == CGI)
+	{
+		if (readCGIResult(client))
+		{
+			parseCGIResult(client);
+			_helper.fillStatus(client);
+		}
 	}
 	else if (client.status == HEADERS)
 	{
 		fstat(client.fileFd, &file_info);
-		if (client.res.status_code == OK && !S_ISDIR(file_info.st_mode))
+		if (client.fileFd != -1 && !S_ISDIR(file_info.st_mode))
 		{
 			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		}
-		else if (client.res.status_code == UNAUTHORIZED)
+		if (client.res.status_code == UNAUTHORIZED)
 			client.res.headers["WWW-Authenticate"] = "Basic";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
-		if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+		if ((S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+			|| client.fileFd == -1)
 			client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
 		else
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
@@ -39,7 +57,7 @@ void	Handler::handleGet(Client &client)
 	else if (client.status == BODY)
 	{
 		fstat(client.fileFd, &file_info);
-		if (!S_ISDIR(file_info.st_mode))
+		if (!S_ISDIR(file_info.st_mode) && client.fileFd != -1)
 		{
 			bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE);
 			if (bytes >= 0)
@@ -47,7 +65,7 @@ void	Handler::handleGet(Client &client)
 			if (bytes == 0)
 				client.setToStandBy();
 		}
-		else
+		else if (S_ISDIR(file_info.st_mode) || client.fileFd == -1)
 		{
 			strcpy(client.wBuf, client.file_str.c_str());
 			client.setToStandBy();
@@ -91,7 +109,7 @@ void	Handler::handlePost(Client &client)
 	int			bytes;
 	int			size;
 
-	if (client.status == PARSING)
+	if (client.status == BODYPARSING)
 		parseBody(client);
 	if (client.status == CODE)
 	{
@@ -159,7 +177,7 @@ void	Handler::handlePut(Client &client)
 	std::string		path;
 	std::string		body;
 
-	if (client.status == PARSING)
+	if (client.status == BODYPARSING)
 		parseBody(client);
 	if (client.status == CODE)
 	{

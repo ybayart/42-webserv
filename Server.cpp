@@ -122,18 +122,15 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	{
 		client->rBuf[bytes] = '\0';
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL
-			&& client->hasBody == false)
+			&& client->status != BODYPARSING)
 		{
 			// std::cout << "[" << client->rBuf << "]" << std::endl;
 			client->lastDate = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
 			client->setWriteState(true);
 		}
-		if (client->hasBody == true)
-		{
-			client->status = PARSING;
+		if (client->status == BODYPARSING)
 			_handler.parseBody(*client);
-		}
 		return (1);
 	}
 	else

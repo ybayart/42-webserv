@@ -300,26 +300,38 @@ char			**Helper::setEnv(Client &client)
 {
 	char											**env;
 	std::map<std::string, std::string> 				envMap;
+	size_t											pos;
 
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
 	envMap["SERVER_PROTOCOL"] = "HTTP/1.1";
 	envMap["SERVER_SOFTWARE"] = "webserv";
-
-	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
-	if (client.req.headers.find("Content-Type") != client.req.headers.end())
-		envMap["CONTENT_TYPE"] = client.req.headers["Content-Type"];
-	envMap["PATH_INFO"] = client.req.uri;
+	envMap["REQUEST_URI"] = client.req.uri;
+	envMap["REQUEST_METHOD"] = client.req.method;
+	envMap["REMOTE_ADDR"] = client.ip;
+	envMap["PATH_INFO"] = client.req.uri.substr(0, client.req.uri.find('?'));
 	envMap["PATH_TRANSLATED"] = client.conf["path"];
 	envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
+	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
+
+	if (client.req.headers.find("Content-Type") != client.req.headers.end())
+		envMap["CONTENT_TYPE"] = client.req.headers["Content-Type"];
 	if (client.conf.find("exec") != client.conf.end())
 		envMap["SCRIPT_NAME"] = client.conf["exec"];
 	else
 		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
-	envMap["SERVER_NAME"] = "localhost";
-	envMap["SERVER_PORT"] = client.conf["listen"];
-	envMap["REQUEST_URI"] = client.req.uri;
-	envMap["REQUEST_METHOD"] = client.req.method;
-	envMap["REMOTE_ADDR"] = client.ip;
+	if (client.conf["listen"].find(":") != std::string::npos)
+	{
+		envMap["SERVER_NAME"] = client.conf["listen"].substr(0, client.conf["listen"].find(":"));
+		envMap["SERVER_PORT"] = client.conf["listen"].substr(client.conf["listen"].find(":") + 1);
+	}
+	else
+		envMap["SERVER_PORT"] = client.conf["listen"];
+	if (client.req.headers.find("Authorization") != client.req.headers.end())
+	{
+		pos = client.req.headers["Authorization"].find(" ");
+		envMap["AUTH_TYPE"] = client.req.headers["Authorization"].substr(0, pos);
+		envMap["REMOTE_USER"] = client.req.headers["Authorization"].substr(pos + 1);
+	}
 
 	std::map<std::string, std::string>::iterator b = client.req.headers.begin();
 	while (b != client.req.headers.end())

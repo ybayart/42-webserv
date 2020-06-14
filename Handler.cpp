@@ -32,7 +32,7 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 		if (client.conf["root"][0] != '\0')
 			chdir(client.conf["root"].c_str());
 		if (request.method == "POST" || request.method == "PUT")
-			client.hasBody = true;
+			client.status = BODYPARSING;
 		else
 			client.status = CODE;
 	}
@@ -63,18 +63,25 @@ void			Handler::parseBody(Client &client)
 
 void			Handler::getBody(Client &client)
 {
-	int			to_read;
-	int			bytes;
+	unsigned int	bytes;
 
-	to_read = atoi(client.req.headers["Content-Length"].c_str());
+	if (client.chunk.len == 0)
+		client.chunk.len = atoi(client.req.headers["Content-Length"].c_str());
 	bytes = strlen(client.rBuf);
-	if (bytes >= to_read)
+	if (bytes >= client.chunk.len)
 	{
-		memset(client.rBuf + to_read, 0, BUFFER_SIZE - to_read);
-		std::cout << "b: " << client.rBuf << std::endl;
-		client.req.body = client.rBuf;
-		client.hasBody = false;
+		memset(client.rBuf + client.chunk.len, 0, BUFFER_SIZE - client.chunk.len);
+		client.req.body += client.rBuf;
+		// std::cout << "b: " << client.req.body << std::endl;
+		client.chunk.len = 0;
 		client.status = CODE;
+	}
+	else
+	{
+		client.chunk.len -= bytes;
+		client.req.body += client.rBuf;
+		memset(client.rBuf, 0, BUFFER_SIZE);
+
 	}
 }
 
@@ -93,7 +100,6 @@ void			Handler::dechunkBody(Client &client)
 	if (client.chunk.done)
 	{
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
-		client.hasBody = false;
 		client.status = CODE;
 		client.chunk.found = false;
 		client.chunk.done = false;
@@ -143,7 +149,7 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 	if (elmt.size() > 0)
 	{
 		client.conf = elmt;
-		client.conf["path"] = req.uri;
+		client.conf["path"] = req.uri.substr(0, req.uri.find("?"));
 		if (elmt.find("root") != elmt.end())
 			client.conf["path"].replace(0, tmp.size(), elmt["root"]);
 	}
@@ -157,6 +163,7 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 		if (client.conf.find("index") != elmt.end()
 		&& client.conf["listing"] != "on")
 			client.conf["path"] += "/" + elmt["index"];
+	// std::cout << "final path: " << client.conf["path"] << std::endl;
 }
 
 void			Handler::negotiate(Client &client)
@@ -245,7 +252,7 @@ void			Handler::createListing(Client &client)
 	}
 	closedir(dir);
 	client.file_str += "</body>\n</html>\n";
-	std::cout << client.file_str << std::endl;
+	// std::cout << client.file_str << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
@@ -394,6 +401,6 @@ void		Handler::parseCGIResult(Client &client)
 	pos = client.file_str.find("\r\n\r\n");
 	pos += 4;
 	client.file_str = client.file_str.substr(pos);
-	// std::cout << "size: " << client.file_str.size() << std::endl;
+	// std::cout << "res: " << client.file_str << std::endl;
 	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
 }

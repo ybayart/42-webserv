@@ -17,13 +17,14 @@
 
 #define BUFFER_SIZE 4096
 
-#define CODE 	1
-#define HEADERS 2
-#define BODY 	3
-#define DONE 	4
-#define CGI 	5
-#define STANDBY	6
-#define PARSING	7
+#define PARSING		1
+#define BODYPARSING 2
+#define CODE 		3
+#define HEADERS 	4
+#define CGI 		5
+#define BODY 		6
+#define STANDBY		7
+#define DONE 		8
 
 class Client
 {
@@ -55,7 +56,6 @@ class Client
 		char		*wBuf;
 		fd_set		*rSet;
 		fd_set		*wSet;
-		bool		hasBody;
 		int			status;
 		std::string	lastDate;
 		t_chunk		chunk;
