@@ -36,7 +36,7 @@ class Server
 		fd_set					*_rSet;
 		fd_set					*_wSet;
 		Handler					_handler;
-		config					_conf;
+		std::vector<config>		_conf;
 
 	public:
 		std::vector<Client*>	_clients;

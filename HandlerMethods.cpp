@@ -8,19 +8,20 @@ void	Handler::handleGet(Client &client)
 
 	if (client.status == CODE)
 	{
+
 		if (!_helper.getStatusCode(client))
 			_helper.getErrorPage(client);
-		if (client.res.status_code == NOTFOUND)
+		fstat(client.fileFd, &file_info);
+		if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+			createListing(client);
+		else if (client.res.status_code == NOTFOUND)
 			negotiate(client);
-		else if (client.res.status_code == OK)
-			if (client.conf["isdir"] == "true" && client.conf["listing"] == "on")
-				createListing(client);
 		_helper.fillStatus(client);
 	}
 	else if (client.status == HEADERS)
 	{
 		fstat(client.fileFd, &file_info);
-		if (client.res.status_code == OK)
+		if (client.res.status_code == OK && !S_ISDIR(file_info.st_mode))
 		{
 			client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
@@ -29,16 +30,28 @@ void	Handler::handleGet(Client &client)
 			client.res.headers["WWW-Authenticate"] = "Basic";
 		client.res.headers["Date"] = _helper.getDate();
 		client.res.headers["Server"] = "webserv";
-		client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
+		if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+			client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
+		else
+			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 		_helper.fillHeaders(client);
 	}
 	else if (client.status == BODY)
 	{
-		bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE);
-		if (bytes >= 0)
-			client.wBuf[bytes] = '\0';
-		if (bytes == 0)
+		fstat(client.fileFd, &file_info);
+		if (!S_ISDIR(file_info.st_mode))
+		{
+			bytes = read(client.fileFd, client.wBuf, BUFFER_SIZE);
+			if (bytes >= 0)
+				client.wBuf[bytes] = '\0';
+			if (bytes == 0)
+				client.setToStandBy();
+		}
+		else
+		{
+			strcpy(client.wBuf, client.file_str.c_str());
 			client.setToStandBy();
+		}
 	}
 }
 

@@ -44,19 +44,34 @@ int		Server::getOpenFd()
 
 void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 {
-	int		yes = 1;
+	int				yes = 1;
+	std::string		to_parse;
+	std::string		host;
 
 	_readSet = readSet;
 	_writeSet = writeSet;
 	_wSet = wSet;
 	_rSet = rSet;
 
+	to_parse = _conf[0]["server|"]["listen"];
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
     setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-	_port = atoi(_conf["server|"]["listen"].c_str());
+    if (to_parse.find(":") != std::string::npos)
+    {
+    	host = to_parse.substr(0, to_parse.find(":"));
+    	_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str());
+		_info.sin_addr.s_addr = inet_addr(host.c_str());
+		_info.sin_port = htons(_port);
+
+    }
+    else
+    {
+		_info.sin_addr.s_addr = INADDR_ANY;
+		_port = atoi(to_parse.c_str());
+		_info.sin_port = htons(_port);
+
+    }
 	_info.sin_family = AF_INET;
-	_info.sin_addr.s_addr = INADDR_ANY;
-	_info.sin_port = htons(_port);
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
     listen(_fd, 1000);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
@@ -74,7 +89,7 @@ void	Server::refuseConnection()
 
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	close(fd);
-	std::cout << "fd limit reached, refusing connection\n";
+	std::cout << "fd limit reached, connection refused\n";
 }
 
 void	Server::acceptConnection()
@@ -103,14 +118,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	bytes = strlen(client->rBuf);
 	ret = read(client->fd, client->rBuf + bytes, BUFFER_SIZE - bytes);
 	bytes += ret;
-	if (ret <= 0)
-	{
-		delete client;
-		_clients.erase(it);
-		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
-		return (0);
-	}
-	else
+	if (ret > 0)
 	{
 		client->rBuf[bytes] = '\0';
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL
@@ -127,6 +135,13 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 			_handler.parseBody(*client);
 		}
 		return (1);
+	}
+	else
+	{
+		delete client;
+		_clients.erase(it);
+		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
+		return (0);
 	}
 }
 

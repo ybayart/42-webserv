@@ -17,6 +17,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <map>
+#include <vector>
 #include <sys/stat.h>
 #include <sys/errno.h>
 #include <dirent.h>
@@ -36,7 +37,7 @@ class Handler
 
 		Helper	_helper;
 
-		void			parseRequest(Client &client, config &conf);
+		void			parseRequest(Client &client, std::vector<config> &conf);
 		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
 
@@ -47,7 +48,7 @@ class Handler
 		void			handlePut(Client &client);
 		void			handleBadRequest(Client &client);
 
-		void			getConf(Client &client, Request &req, config &conf);
+		void			getConf(Client &client, Request &req, std::vector<config> &conf);
 		void			negotiate(Client &client);
 		void			createListing(Client &client);
 		bool			checkSyntax(const Request &request);

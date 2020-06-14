@@ -16,6 +16,7 @@ int			Helper::getStatusCode(Client &client)
 int			Helper::GETStatus(Client &client)
 {
 	std::string		credential;
+	struct stat		info;
 
 	client.res.version = "HTTP/1.1";
 	client.res.status_code = OK;
@@ -34,11 +35,12 @@ int			Helper::GETStatus(Client &client)
 	if (client.res.status_code == OK)
 	{
 		client.fileFd = open(client.conf["path"].c_str(), O_RDONLY);
-		if (client.fileFd == -1)
-			client.res.status_code = NOTFOUND;
-		if ((client.conf["isdir"] == "true" && client.conf["listing"] == "on")
-		|| client.fileFd != -1)
+		fstat(client.fileFd, &info);
+		if ((S_ISDIR(info.st_mode) && client.conf["listing"] == "on")
+		|| (!S_ISDIR(info.st_mode) && client.fileFd != -1))
 			return (1);
+		else
+			client.res.status_code = NOTFOUND;
 	}
 	return (0);
 }
@@ -46,6 +48,7 @@ int			Helper::GETStatus(Client &client)
 int			Helper::POSTStatus(Client &client)
 {
 	std::string		credential;
+	struct stat		info;
 
 	client.res.version = "HTTP/1.1";
 	client.res.status_code = OK;
@@ -72,7 +75,8 @@ int			Helper::POSTStatus(Client &client)
 			client.fileFd = open(client.conf["exec"].c_str(), O_RDONLY);
 		else
 			client.fileFd = open(client.conf["path"].c_str(), O_RDONLY);
-		if (client.fileFd == -1 || client.conf["isdir"] == "true")
+		fstat(client.fileFd, &info);
+		if (client.fileFd == -1 || S_ISDIR(info.st_mode))
 			client.res.status_code = NOTFOUND;
 		else
 			return (1);
@@ -82,7 +86,8 @@ int			Helper::POSTStatus(Client &client)
 
 int			Helper::PUTStatus(Client &client)
 {
-	int ret;
+	int 		ret;
+	struct stat	info;
 
 	client.res.version = "HTTP/1.1";
 	if (client.conf["methods"].find(client.req.method) == std::string::npos)
@@ -93,7 +98,8 @@ int			Helper::PUTStatus(Client &client)
 	else
 	{
 		ret = open(client.conf["path"].c_str(), O_RDONLY);
-		if (client.conf["isdir"] == "true")
+		fstat(ret, &info);
+		if (S_ISDIR(info.st_mode))
 			client.res.status_code = NOTFOUND;
 		else
 		{ 

@@ -74,8 +74,6 @@ void	Client::setToStandBy()
 	status = STANDBY;
 	setReadState(true);
 	close(fileFd);
-	if (conf["isdir"] == "true" && conf["listing"] == "on")
-		unlink("/tmp/listing.tmp");
 	fileFd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
 	hasBody = false;

@@ -67,8 +67,22 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 					return (0);
 				else
 				{
-					server._conf = tmp;
-					servers.push_back(server);
+					std::vector<Server>::iterator it(servers.begin());
+					while (it != servers.end())
+					{
+						if (tmp["server|"]["listen"] == it->_conf[0]["server|"]["listen"])
+						{
+							it->_conf.push_back(tmp);
+							break ;
+						}
+						++it;
+					}
+					if (it == servers.end())
+					{
+						server._conf.push_back(tmp);
+						servers.push_back(server);
+					}
+					server._conf.clear();
 					tmp.clear();
 					context.clear();
 				}

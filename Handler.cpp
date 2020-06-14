@@ -10,7 +10,7 @@ Handler::~Handler()
 	
 }
 
-void			Handler::parseRequest(Client &client, config &conf)
+void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 {
 	std::stringstream	is;
 	Request				request;
@@ -101,32 +101,45 @@ void			Handler::dechunkBody(Client &client)
 	}
 }
 
-void			Handler::getConf(Client &client, Request &req, config &conf)
+void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 {
 	std::map<std::string, std::string> elmt;
 	std::string		tmp;
 	std::string 	file;
 	struct stat		info;
+	config			to_parse;
 
 	if (!req.valid)
 	{
-		client.conf["error"] = conf["server|"]["error"];
+		client.conf["error"] = conf[0]["server|"]["error"];
 		return ;
 	}
+	std::vector<config>::iterator it(conf.begin());
+	while (it != conf.end())
+	{
+		if (req.headers["Host"] == (*it)["server|"]["server_name"] + "\r")
+		{
+			to_parse = *it;
+			break ;
+		}
+		++it;
+	}
+	if (it == conf.end())
+		to_parse = conf[0];
 	file = req.uri.substr(req.uri.find_last_of('/') + 1, req.uri.find('?'));
 	tmp = req.uri;
 	do
 	{
-		if (conf.find("server|location " + tmp + "|") != conf.end())
+		if (to_parse.find("server|location " + tmp + "|") != to_parse.end())
 		{
-			elmt = conf["server|location " + tmp + "|"];
+			elmt = to_parse["server|location " + tmp + "|"];
 			break ;
 		}
 		tmp = tmp.substr(0, tmp.find_last_of('/'));
 	} while (tmp != "");
 	if (elmt.size() == 0)
-		if (conf.find("server|location /|") != conf.end())
-			elmt = conf["server|location /|"];
+		if (to_parse.find("server|location /|") != to_parse.end())
+			elmt = to_parse["server|location /|"];
 	if (elmt.size() > 0)
 	{
 		client.conf = elmt;
@@ -134,22 +147,16 @@ void			Handler::getConf(Client &client, Request &req, config &conf)
 		if (elmt.find("root") != elmt.end())
 			client.conf["path"].replace(0, tmp.size(), elmt["root"]);
 	}
-	for (std::map<std::string, std::string>::iterator it(conf["server|"].begin()); it != conf["server|"].end(); ++it)
+	for (std::map<std::string, std::string>::iterator it(to_parse["server|"].begin()); it != to_parse["server|"].end(); ++it)
 	{
 		if (client.conf.find(it->first) == client.conf.end())
 			client.conf[it->first] = it->second;
 	}
 	lstat(client.conf["path"].c_str(), &info);
 	if (S_ISDIR(info.st_mode))
-	{
-		if ((client.conf["listing"][0] != '\0' && client.conf["listing"] == "on")
-		|| client.conf.find("index") == elmt.end())
-			client.conf["isdir"] = "true";
-		else
+		if (client.conf.find("index") != elmt.end()
+		&& client.conf["listing"] != "on")
 			client.conf["path"] += "/" + elmt["index"];
-	}
-
-	// std::cout << "p: " << client.conf["path"] << std::endl;
 }
 
 void			Handler::negotiate(Client &client)
@@ -218,32 +225,27 @@ void			Handler::negotiate(Client &client)
 void			Handler::createListing(Client &client)
 {
 	DIR				*dir;
-	std::string		list;
 	struct dirent	*cur;
-	int				tmp;
 
 	dir = opendir(client.conf["path"].c_str());
-	list = "<html>\n<body>\n";
-	list += "<h1>Directory listing</h1>\n";
+	client.file_str = "<html>\n<body>\n";
+	client.file_str += "<h1>Directory listing</h1>\n";
 	while ((cur = readdir(dir)) != NULL)
 	{
 		if (cur->d_name[0] != '.')
 		{
-			list += "<a href=\"" + client.req.uri;
+			client.file_str += "<a href=\"" + client.req.uri;
 			if (client.req.uri != "/")
-				list += "/";
-			list += cur->d_name;
-			list += "\">";
-			list += cur->d_name;
-			list += "</a><br>\n";
+				client.file_str += "/";
+			client.file_str += cur->d_name;
+			client.file_str += "\">";
+			client.file_str += cur->d_name;
+			client.file_str += "</a><br>\n";
 		}
 	}
-	list += "</body>\n</html>\n";
-	std::cout << list << std::endl;
-	tmp = open("/tmp/listing.tmp", O_WRONLY | O_CREAT, 0666);
-	write(tmp, list.c_str(), list.size());
-	close(tmp);
-	client.fileFd = open("/tmp/listing.tmp", O_RDONLY);
+	closedir(dir);
+	client.file_str += "</body>\n</html>\n";
+	std::cout << client.file_str << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
