@@ -2,29 +2,14 @@
 #define HANDLER_HPP
 
 #include <sstream>
-#include <iostream>
-#include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/ip.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <time.h>
-#include <sys/time.h>
-#include <map>
 #include <vector>
-#include <sys/stat.h>
-#include <sys/errno.h>
 #include <dirent.h>
-#include "messages.h"
-#include "statusCode.h"
-#include "Client.hpp"
+#include <sys/stat.h>
+
 #include "Helper.hpp"
+
+class Client;
+class Helper;
 
 class Handler
 {

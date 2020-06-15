@@ -1,22 +1,7 @@
 #ifndef Server_HPP
 #define Server_HPP
 
-#include <iostream>
-#include <vector>
-#include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/ip.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <map>
 #include "Handler.hpp"
-#include "Client.hpp"
 
 #define TIMEOUT 10
 

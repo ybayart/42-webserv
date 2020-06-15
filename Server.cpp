@@ -13,7 +13,8 @@ Server::~Server()
 			delete *it;
 		_clients.clear();
 		close(_fd);
-		std::cout << "closed server listening on port " << _port << "\n";
+		// std::cout << "closed server listening on port " << _port << "\n";
+		g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }
 
@@ -77,7 +78,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
-    std::cout << "Listening on port " << _port << "...\n";
+    g_logger.log("[" + std::to_string(_port) + "] " + "listening...", LOW);
 }
 
 void	Server::refuseConnection()
@@ -89,7 +90,8 @@ void	Server::refuseConnection()
 
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	close(fd);
-	std::cout << "fd limit reached, connection refused\n";
+	// std::cout << "fd limit reached, connection refused\n";
+	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused", MED);
 }
 
 void	Server::acceptConnection()
@@ -105,7 +107,7 @@ void	Server::acceptConnection()
 		_maxFd = fd;
 	newOne = new Client(fd, _rSet, _wSet, info);
 	_clients.push_back(newOne);
-	std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
+	g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
 }
 
 int		Server::readRequest(std::vector<Client*>::iterator it)
@@ -113,6 +115,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	int 		bytes;
 	int			ret;
 	Client		*client;
+	std::string	log;
 
 	client = *it;
 	bytes = strlen(client->rBuf);
@@ -124,7 +127,9 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL
 			&& client->status != BODYPARSING)
 		{
-			// std::cout << "[" << client->rBuf << "]" << std::endl;
+			log = "REQUEST:\n";
+			log += client->rBuf;
+			g_logger.log(log, HIGH);
 			client->lastDate = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
 			client->setWriteState(true);
@@ -137,7 +142,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	{
 		delete client;
 		_clients.erase(it);
-		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
+		g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
 }
@@ -147,6 +152,7 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 	int				bytes;
 	int				size;
 	std::string		tmp;
+	std::string		log;
 	Client			*client;
 
 	client = *it;
@@ -154,7 +160,9 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 	if (size > 0)
 	{
 		bytes = write(client->fd, client->wBuf, size);
-		// std::cout << "sent : [" << client->wBuf << "]\n";
+		log = "RESPONSE:\n";
+		log += client->wBuf;
+		g_logger.log(log, HIGH);
 		if (bytes < size)
 		{
 			tmp = client->wBuf;
@@ -175,7 +183,7 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 	{
 		delete client;
 		_clients.erase(it);
-		std::cout << "nb of clients: " << _clients.size() << " [" << _port << "]\n";
+		g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
 	return (1);
@@ -194,6 +202,5 @@ int		Server::getTimeDiff(std::string start)
 	result = (now_tm->tm_hour - start_tm.tm_hour) * 3600;
 	result += (now_tm->tm_min - start_tm.tm_min) * 60;
 	result += (now_tm->tm_sec - start_tm.tm_sec);
-	// std::cout << "diff: " << result << std::endl;
 	return (result);
 }

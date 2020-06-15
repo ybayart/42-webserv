@@ -1,21 +1,9 @@
-#include <iostream>
-#include <ctime>
-#include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/ip.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <signal.h>
 #include "Server.hpp"
 #include "Config.hpp"
-#include "Client.hpp"
+#include "Logger.hpp"
 
 std::vector<Server>		g_servers;
+Logger					g_logger(1, "console", MED);
 
 int		ret_error(std::string error)
 {

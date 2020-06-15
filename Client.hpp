@@ -2,18 +2,16 @@
 #define CLIENT_HPP
 
 #include <iostream>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/ip.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include <sys/select.h>
 #include <netinet/in.h>
-#include "string"
-#include "map"
+#include <arpa/inet.h>
+#include <string>
+#include <map>
+
 #include "messages.h"
+#include "Logger.hpp"
 
 #define BUFFER_SIZE 4096
 
@@ -25,6 +23,8 @@
 #define BODY 		6
 #define STANDBY		7
 #define DONE 		8
+
+extern Logger g_logger;
 
 class Client
 {

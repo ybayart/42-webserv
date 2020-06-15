@@ -14,7 +14,7 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 	chunk.len = 0;
 	chunk.done = false;
 	chunk.found = false;
-	std::cout << "new connection from " << ip << ":" << port << std::endl;
+	g_logger.log("new connection from " + ip + std::to_string(port), LOW);
 }
 
 Client::~Client()
@@ -28,7 +28,7 @@ Client::~Client()
 		FD_CLR(fd, rSet);
 	if (FD_ISSET(fd, wSet))
 		FD_CLR(fd, wSet);
-	std::cout << "connection closed from " << ip << ":" << port << "\n";	
+	g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
 }
 
 int		Client::getFd() const
@@ -70,8 +70,7 @@ void	Client::setWriteState(bool state)
 
 void	Client::setToStandBy()
 {
-	// std::cout << "standing by\n";
-	std::cout << ip << ":" << port << ": " << req.method << ": " << "DONE" << std::endl;
+	g_logger.log(req.method + " from " + ip + ":" + std::to_string(port) + " answered", LOW);
 	status = STANDBY;
 	setReadState(true);
 	close(fileFd);

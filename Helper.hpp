@@ -1,26 +1,9 @@
 #ifndef HELPER_HPP
 #define HELPER_HPP
 
-#include <sstream>
-#include <iostream>
-#include <string>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/ip.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <signal.h>
-#include <time.h>
-#include <sys/time.h>
-#include <map>
-#include <set>
 #include <sys/stat.h>
-#include <sys/errno.h>
-#include "messages.h"
+#include <sys/time.h>
+
 #include "statusCode.h"
 #include "Client.hpp"
 

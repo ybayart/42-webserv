@@ -78,6 +78,8 @@ void			Handler::parseBody(Client &client)
 		client.req.method = "BAD";
 		client.status = CODE;
 	}
+	if (client.status == CODE)
+		g_logger.log("body size parsed from " + client.ip + ":" + std::to_string(client.port) + ": " + std::to_string(client.req.body.size()), MED);
 }
 
 void			Handler::getBody(Client &client)
@@ -91,7 +93,6 @@ void			Handler::getBody(Client &client)
 	{
 		memset(client.rBuf + client.chunk.len, 0, BUFFER_SIZE - client.chunk.len);
 		client.req.body += client.rBuf;
-		// std::cout << "b: " << client.req.body << std::endl;
 		client.chunk.len = 0;
 		client.status = CODE;
 	}
@@ -182,7 +183,7 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 		if (client.conf.find("index") != elmt.end()
 		&& client.conf["listing"] != "on")
 			client.conf["path"] += "/" + elmt["index"];
-	// std::cout << "final path: " << client.conf["path"] << std::endl;
+	g_logger.log("path requested from " + client.ip + ":" + std::to_string(client.port) + ": " + client.conf["path"], MED);
 }
 
 void			Handler::negotiate(Client &client)
@@ -271,7 +272,6 @@ void			Handler::createListing(Client &client)
 	}
 	closedir(dir);
 	client.file_str += "</body>\n</html>\n";
-	// std::cout << client.file_str << std::endl;
 }
 
 void			Handler::dispatcher(Client &client)
@@ -329,9 +329,9 @@ void			Handler::execCGI(Client &client)
 	args[2] = NULL;
 	env = _helper.setEnv(client);
 	client.tmp_path = "/tmp/cgi.tmp";
-	// std::cout << "tmp: " << client.tmp_path << "\n";
 	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
+	g_logger.log("executing CGI for " + client.ip + ":" + std::to_string(client.port), MED);
 	if ((client.pid = fork()) == 0)
 	{
 		close(tubes[1]);
@@ -348,8 +348,7 @@ void			Handler::execCGI(Client &client)
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
 		close(tubes[1]);
-		// std::cout << "sent :" << client.req.body << std::endl; 
-		// std::cout << "sent "<< bytes << " bytes to cgi\n";
+		g_logger.log("sent " + std::to_string(bytes) + " to CGI stdin", MED);
 	}
 	_helper.freeAll(args, env);
 }
@@ -384,7 +383,6 @@ void		Handler::parseCGIResult(Client &client)
 	std::string		key;
 	std::string		value;
 
-	// std::cout << "res: " << client.file_str << std::endl;
 	headers = client.file_str.substr(0, client.file_str.find("\r\n\r\n") + 1);
 	pos = headers.find("Status");
 	if (pos != std::string::npos)
@@ -421,6 +419,5 @@ void		Handler::parseCGIResult(Client &client)
 	}
 	pos = client.file_str.find("\r\n\r\n") + 4;
 	client.file_str = client.file_str.substr(pos);
-	// std::cout << "res: " << client.file_str << std::endl;
 	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
 }

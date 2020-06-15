@@ -7,6 +7,7 @@ SRCS = Server.cpp \
 	Helper.cpp \
 	HelperStatusCode.cpp \
 	Config.cpp \
+	Logger.cpp \
 	main.cpp
 
 OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))
