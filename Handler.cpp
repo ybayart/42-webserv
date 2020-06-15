@@ -80,7 +80,7 @@ void			Handler::getBody(Client &client)
 	{
 		client.chunk.len -= bytes;
 		client.req.body += client.rBuf;
-		memset(client.rBuf, 0, BUFFER_SIZE);
+		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 
 	}
 }
@@ -315,7 +315,10 @@ void			Handler::execCGI(Client &client)
 	int				bytes;
 	int				file_tmp;
 
-	if (client.conf.find("exec") != client.conf.end())
+	if (client.conf.find("php") != client.conf.end()
+	&& client.conf["path"].find(".php") != std::string::npos)
+		path = client.conf["php"];
+	else if (client.conf.find("exec") != client.conf.end())
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
@@ -344,7 +347,8 @@ void			Handler::execCGI(Client &client)
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
 		close(tubes[1]);
-		// std::cout << "sent "<< bytes << " bytes to cgi\n";
+		std::cout << "sent :" << client.req.body << std::endl; 
+		std::cout << "sent "<< bytes << " bytes to cgi\n";
 	}
 	_helper.freeAll(args, env);
 }
@@ -374,32 +378,45 @@ bool		Handler::readCGIResult(Client &client)
 
 void		Handler::parseCGIResult(Client &client)
 {
-	size_t	pos;
+	size_t			pos;
+	std::string		headers;
+	std::string		key;
+	std::string		value;
 
-	pos = client.file_str.find("Status");
+	// std::cout << "res: " << client.file_str << std::endl;
+	headers = client.file_str.substr(0, client.file_str.find("\r\n\r\n") + 1);
+	pos = headers.find("Status");
 	if (pos != std::string::npos)
 	{
 		client.res.status_code.clear();
 		pos += 8;
-		while (client.file_str[pos] != '\r')
+		while (headers[pos] != '\r')
 		{
-			client.res.status_code += client.file_str[pos];
+			client.res.status_code += headers[pos];
 			pos++;
 		}
 	}
-	pos = client.file_str.find("Content-Type");
-	if (pos != std::string::npos)
+	pos = 0;
+	while (headers[pos])
 	{
-		client.res.headers["Content-Type"].clear();
-		pos += 14;
-		while (client.file_str[pos] != '\r')
+		while (headers[pos] && headers[pos] != ':')
 		{
-			client.res.headers["Content-Type"] += client.file_str[pos];
-			pos++;
+			key += headers[pos];
+			++pos;
 		}
+		++pos;
+		while (headers[pos] && headers[pos] != '\r')
+		{
+			value += headers[pos];
+			++pos;
+		}
+		client.res.headers[key] = value;
+		key.clear();
+		value.clear();
+		if (headers[pos] == '\r' && headers[pos + 1] == '\n')
+			pos += 2;
 	}
-	pos = client.file_str.find("\r\n\r\n");
-	pos += 4;
+	pos = client.file_str.find("\r\n\r\n") + 4;
 	client.file_str = client.file_str.substr(pos);
 	// std::cout << "res: " << client.file_str << std::endl;
 	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());

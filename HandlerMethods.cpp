@@ -16,8 +16,8 @@ void	Handler::handleGet(Client &client)
 			createListing(client);
 		else if (client.res.status_code == NOTFOUND)
 			negotiate(client);
-		if (client.conf.find("CGI") != client.conf.end()
-		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
+		if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+		|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 		&& client.res.status_code == OK)
 		{
 			client.fileFd = -1;
@@ -67,8 +67,16 @@ void	Handler::handleGet(Client &client)
 		}
 		else if (S_ISDIR(file_info.st_mode) || client.fileFd == -1)
 		{
-			strcpy(client.wBuf, client.file_str.c_str());
-			client.setToStandBy();
+			if (client.file_str.size() > BUFFER_SIZE)
+			{
+				strncpy(client.wBuf, client.file_str.c_str(), BUFFER_SIZE);
+				client.file_str = client.file_str.substr(BUFFER_SIZE);
+			}
+			else
+			{
+				strcpy(client.wBuf, client.file_str.c_str());
+				client.setToStandBy();
+			}
 		}
 	}
 }
@@ -115,8 +123,8 @@ void	Handler::handlePost(Client &client)
 	{
 		if (!_helper.getStatusCode(client))
 			_helper.getErrorPage(client);
-		if (client.conf.find("CGI") != client.conf.end()
-		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
+		if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+		|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 		&& client.res.status_code == OK)
 		{
 			client.fileFd = -1;
@@ -143,7 +151,7 @@ void	Handler::handlePost(Client &client)
 		client.res.headers["Server"] = "webserv";
 		if (client.res.headers.find("Content-Length") == client.res.headers.end())
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
-		if (client.res.headers.find("Content-Type") == client.res.headers.end())
+		if (client.res.headers.find("Content-Type") == client.res.headers.end() && client.fileFd != -1)
 			client.res.headers["Content-Type"] = _helper.findType(client.req);
 		_helper.fillHeaders(client);
 	}

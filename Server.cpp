@@ -124,7 +124,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL
 			&& client->status != BODYPARSING)
 		{
-			// std::cout << "[" << client->rBuf << "]" << std::endl;
+			std::cout << "[" << client->rBuf << "]" << std::endl;
 			client->lastDate = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
 			client->setWriteState(true);

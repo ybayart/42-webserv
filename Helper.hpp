@@ -40,13 +40,15 @@ class Helper
 		void			fillStatus(Client &client);
 		void			fillHeaders(Client &client);
 		void			fillBody(Client &client);
-		int				ft_power(int nb, int power);
-		int				fromHexa(const char *nb);
 		char			**setEnv(Client &client);
-		void			freeAll(char **args, char **env);
 		std::string		decode64(const char *data);
 		void			parseAcceptLanguage(Client &client, std::multimap<std::string, std::string> &map);
 		void			parseAcceptCharsets(Client &client, std::multimap<std::string, std::string> &map);
+
+		int				ft_power(int nb, int power);
+		int				fromHexa(const char *nb);
+		void			freeAll(char **args, char **env);
+		std::string		toUpper(std::string str);
 		void			assignMIME();
 
 		int				getStatusCode(Client &client);

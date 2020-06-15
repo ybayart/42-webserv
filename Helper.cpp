@@ -308,17 +308,23 @@ char			**Helper::setEnv(Client &client)
 	envMap["REQUEST_URI"] = client.req.uri;
 	envMap["REQUEST_METHOD"] = client.req.method;
 	envMap["REMOTE_ADDR"] = client.ip;
-	envMap["PATH_INFO"] = client.req.uri.substr(0, client.req.uri.find('?'));
+	envMap["PATH_INFO"] = client.conf["path"];
 	envMap["PATH_TRANSLATED"] = client.conf["path"];
-	envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
 	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
 
+	if (client.req.uri.find('?') != std::string::npos)
+		envMap["QUERY_STRING"] = client.req.uri.substr(client.req.uri.find('?') + 1);
+	else
+		envMap["QUERY_STRING"];
 	if (client.req.headers.find("Content-Type") != client.req.headers.end())
+	{
+		client.req.headers["Content-Type"].pop_back();
 		envMap["CONTENT_TYPE"] = client.req.headers["Content-Type"];
+	}
 	if (client.conf.find("exec") != client.conf.end())
 		envMap["SCRIPT_NAME"] = client.conf["exec"];
 	else
-		envMap["SCRIPT_NAME"] = client.req.uri.substr(client.req.uri.find_last_of('/'));
+		envMap["SCRIPT_NAME"] = client.conf["path"];
 	if (client.conf["listen"].find(":") != std::string::npos)
 	{
 		envMap["SERVER_NAME"] = client.conf["listen"].substr(0, client.conf["listen"].find(":"));
@@ -328,15 +334,18 @@ char			**Helper::setEnv(Client &client)
 		envMap["SERVER_PORT"] = client.conf["listen"];
 	if (client.req.headers.find("Authorization") != client.req.headers.end())
 	{
+		 client.req.headers["Authorization"].pop_back();
 		pos = client.req.headers["Authorization"].find(" ");
 		envMap["AUTH_TYPE"] = client.req.headers["Authorization"].substr(0, pos);
 		envMap["REMOTE_USER"] = client.req.headers["Authorization"].substr(pos + 1);
 	}
+	if (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos)
+		envMap["REDIRECT_STATUS"] = "200";
 
 	std::map<std::string, std::string>::iterator b = client.req.headers.begin();
 	while (b != client.req.headers.end())
 	{
-		envMap["HTTP_" + b->first] = b->second;
+		envMap["HTTP_" + toUpper(b->first)] = b->second;
 		++b;
 	}
 	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
@@ -350,6 +359,18 @@ char			**Helper::setEnv(Client &client)
 	}
 	env[i] = NULL;
 	return (env);
+}
+
+std::string		Helper::toUpper(std::string str)
+{
+	size_t pos = 0;
+	while (str[pos])
+	{
+		if (str[pos] >= 97 && str[pos] <= 122)
+			str[pos] -= 32;
+		++pos;
+	}
+	return (str);
 }
 
 void			Helper::freeAll(char **args, char **env)
