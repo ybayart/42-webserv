@@ -317,10 +317,7 @@ char			**Helper::setEnv(Client &client)
 	else
 		envMap["QUERY_STRING"];
 	if (client.req.headers.find("Content-Type") != client.req.headers.end())
-	{
-		client.req.headers["Content-Type"].pop_back();
 		envMap["CONTENT_TYPE"] = client.req.headers["Content-Type"];
-	}
 	if (client.conf.find("exec") != client.conf.end())
 		envMap["SCRIPT_NAME"] = client.conf["exec"];
 	else
@@ -334,7 +331,6 @@ char			**Helper::setEnv(Client &client)
 		envMap["SERVER_PORT"] = client.conf["listen"];
 	if (client.req.headers.find("Authorization") != client.req.headers.end())
 	{
-		 client.req.headers["Authorization"].pop_back();
 		pos = client.req.headers["Authorization"].find(" ");
 		envMap["AUTH_TYPE"] = client.req.headers["Authorization"].substr(0, pos);
 		envMap["REMOTE_USER"] = client.req.headers["Authorization"].substr(pos + 1);

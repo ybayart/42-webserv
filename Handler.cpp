@@ -47,12 +47,31 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	strcpy(client.rBuf, tmp.c_str());
 }
 
+void			Handler::parseHeaders(std::stringstream &buf, Request &req)
+{
+	size_t		pos;
+	std::string	line;
+
+	while (!buf.eof())
+	{
+		std::getline(buf, line);
+		if (line.size() < 1 || line[0] == '\n' || line[0] == '\r')
+			break ;
+		if (line.find(':') != std::string::npos)
+		{
+			pos = line.find(':');
+ 			req.headers[line.substr(0, pos)] = line.substr(pos + 2);
+ 			req.headers[line.substr(0, pos)].pop_back(); //remove '\r'
+		}
+	}
+}
+
 void			Handler::parseBody(Client &client)
 {
 	if (client.req.headers.find("Content-Length") != client.req.headers.end())
 		getBody(client);
 	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
-	&& client.req.headers["Transfer-Encoding"] == "chunked\r")
+	&& client.req.headers["Transfer-Encoding"] == "chunked")
 		dechunkBody(client);
 	else
 	{
@@ -285,24 +304,6 @@ bool			Handler::checkSyntax(const Request &req)
 	if (req.headers.find("Host") == req.headers.end())
 		return (false);
 	return (true);
-}
-
-void			Handler::parseHeaders(std::stringstream &buf, Request &req)
-{
-	size_t		pos;
-	std::string	line;
-
-	while (!buf.eof())
-	{
-		std::getline(buf, line);
-		if (line.size() < 1 || line[0] == '\n' || line[0] == '\r')
-			break ;
-		if (line.find(':') != std::string::npos)
-		{
-			pos = line.find(':');
- 			req.headers[line.substr(0, pos)] = line.substr(pos + 2, std::string::npos);
-		}
-	}
 }
 
 void			Handler::execCGI(Client &client)
