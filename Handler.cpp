@@ -347,8 +347,8 @@ void			Handler::execCGI(Client &client)
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
 		close(tubes[1]);
-		std::cout << "sent :" << client.req.body << std::endl; 
-		std::cout << "sent "<< bytes << " bytes to cgi\n";
+		// std::cout << "sent :" << client.req.body << std::endl; 
+		// std::cout << "sent "<< bytes << " bytes to cgi\n";
 	}
 	_helper.freeAll(args, env);
 }
@@ -413,8 +413,10 @@ void		Handler::parseCGIResult(Client &client)
 		client.res.headers[key] = value;
 		key.clear();
 		value.clear();
-		if (headers[pos] == '\r' && headers[pos + 1] == '\n')
-			pos += 2;
+		if (headers[pos] == '\r')
+			pos++;
+		if (headers[pos] == '\n')
+			pos++;
 	}
 	pos = client.file_str.find("\r\n\r\n") + 4;
 	client.file_str = client.file_str.substr(pos);

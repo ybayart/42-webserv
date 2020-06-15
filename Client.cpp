@@ -23,6 +23,7 @@ Client::~Client()
 	free(wBuf);
 	close(fd);
 	close(fileFd);
+	unlink(tmp_path.c_str());
 	if (FD_ISSET(fd, rSet))
 		FD_CLR(fd, rSet);
 	if (FD_ISSET(fd, wSet))

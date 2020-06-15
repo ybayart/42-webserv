@@ -48,7 +48,6 @@ class Helper
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);
 		void			freeAll(char **args, char **env);
-		std::string		toUpper(std::string str);
 		void			assignMIME();
 
 		int				getStatusCode(Client &client);

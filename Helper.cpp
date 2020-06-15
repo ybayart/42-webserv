@@ -308,7 +308,7 @@ char			**Helper::setEnv(Client &client)
 	envMap["REQUEST_URI"] = client.req.uri;
 	envMap["REQUEST_METHOD"] = client.req.method;
 	envMap["REMOTE_ADDR"] = client.ip;
-	envMap["PATH_INFO"] = client.conf["path"];
+	envMap["PATH_INFO"] = client.req.uri;
 	envMap["PATH_TRANSLATED"] = client.conf["path"];
 	envMap["CONTENT_LENGTH"] = std::to_string(client.req.body.size());
 
@@ -345,7 +345,7 @@ char			**Helper::setEnv(Client &client)
 	std::map<std::string, std::string>::iterator b = client.req.headers.begin();
 	while (b != client.req.headers.end())
 	{
-		envMap["HTTP_" + toUpper(b->first)] = b->second;
+		envMap["HTTP_" + b->first] = b->second;
 		++b;
 	}
 	env = (char **)malloc(sizeof(char *) * (envMap.size() + 1));
@@ -359,18 +359,6 @@ char			**Helper::setEnv(Client &client)
 	}
 	env[i] = NULL;
 	return (env);
-}
-
-std::string		Helper::toUpper(std::string str)
-{
-	size_t pos = 0;
-	while (str[pos])
-	{
-		if (str[pos] >= 97 && str[pos] <= 122)
-			str[pos] -= 32;
-		++pos;
-	}
-	return (str);
 }
 
 void			Helper::freeAll(char **args, char **env)
