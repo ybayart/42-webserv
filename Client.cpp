@@ -7,8 +7,6 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 	port = htons(info.sin_port);
 	rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	wBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-	file_rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-	file_wBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	memset(rBuf, 0, BUFFER_SIZE + 1);
 	memset(wBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
@@ -23,8 +21,6 @@ Client::~Client()
 {
 	free(rBuf);
 	free(wBuf);
-	free(file_rBuf);
-	free(file_wBuf);
 	close(fd);
 	close(file_fd);
 	unlink(tmp_path.c_str());

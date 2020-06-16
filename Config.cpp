@@ -169,7 +169,7 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 				if (line[pos])
 					pos++;
 			}
-			std::cout << key + " : " + value + " / c: " + context << std::endl;
+			// std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
 			config[context].insert(tmp);
 			key.clear();

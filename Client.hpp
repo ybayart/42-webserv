@@ -56,8 +56,6 @@ class Client
 		int			cgi_pid;
 		char		*rBuf;
 		char		*wBuf;
-		char		*file_rBuf;
-		char		*file_wBuf;
 		fd_set		*rSet;
 		fd_set		*wSet;
 		Request		req;

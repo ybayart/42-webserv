@@ -20,6 +20,7 @@ void	Handler::handleGet(Client &client)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
+				close(client.file_fd);
 				client.file_fd = -1;
 				execCGI(client);
 				client.status = Client::CGI;
@@ -120,6 +121,7 @@ void	Handler::handlePost(Client &client)
 	{
 		case Client::BODYPARSING:
 			parseBody(client);
+			break ;
 		case Client::CODE:
 			if (!_helper.getStatusCode(client))
 				_helper.getErrorPage(client);
@@ -127,6 +129,7 @@ void	Handler::handlePost(Client &client)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
+				close(client.file_fd);
 				client.file_fd = -1;
 				execCGI(client);
 				client.status = Client::CGI;
@@ -187,6 +190,7 @@ void	Handler::handlePut(Client &client)
 	{
 		case Client::BODYPARSING:
 			parseBody(client);
+			break ;
 		case Client::CODE:
 			if (!_helper.getStatusCode(client))
 				_helper.getErrorPage(client);
