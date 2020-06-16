@@ -15,60 +15,68 @@
 
 #define BUFFER_SIZE 4096
 
-#define PARSING		1
-#define BODYPARSING 2
-#define CODE 		3
-#define HEADERS 	4
-#define CGI 		5
-#define BODY 		6
-#define STANDBY		7
-#define DONE 		8
-
 extern Logger g_logger;
 
 class Client
 {
-	typedef std::map<std::string, std::string> t_conf;
 	friend class Server;
 	friend class Handler;
 	friend class Helper;
 
+	typedef std::map<std::string, std::string> t_conf;
+	struct t_chunk
+	{
+		unsigned int	len;
+		bool			done;
+		bool			found;
+	};
+
 	public:	
-		struct t_chunk
+		enum status
 		{
-			unsigned int	len;
-			bool			done;
-			bool			found;
+			PARSING,
+			BODYPARSING,
+			CODE,
+			HEADERS,
+			CGI,
+			BODY,
+			STANDBY,
+			DONE
 		};
 
-	private:
 		int			fd;
-		std::string	ip;
+		int			file_fd;
+
+		void		readFile();
+		void		writeFile();
+
+	private:
 		int			port;
-		int			pid;
-		int			fileFd;
-		std::string	file_str;
-		std::string	tmp_path;
-		Request		req;
-		Response	res;
-		t_conf 		conf;
+		int			status;
+		int			cgi_pid;
 		char		*rBuf;
 		char		*wBuf;
+		char		*file_rBuf;
+		char		*file_wBuf;
 		fd_set		*rSet;
 		fd_set		*wSet;
-		int			status;
-		std::string	lastDate;
+		Request		req;
+		Response	res;
+		std::string	ip;
+		std::string	file_str;
+		std::string	tmp_path;
+		std::string	last_date;
+		t_conf 		conf;
 		t_chunk		chunk;
 
 	public:
 		Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info);
 		~Client();
 
-		int		getFd() const;
-		bool	getReadState();
-		bool	getWriteState();
 		void	setReadState(bool state);
 		void	setWriteState(bool state);
+		void	setFileToRead(int fd, bool state);
+		void	setFileToWrite(int fd, bool state);
 		void	setToStandBy();
 };
 

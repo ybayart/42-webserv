@@ -37,7 +37,7 @@ int		Server::getOpenFd()
 	{
 		client = *it;
 		nb += 1;
-		if (client->fileFd != -1)
+		if (client->file_fd != -1)
 			nb += 1;
 	}
 	return (nb);
@@ -90,7 +90,6 @@ void	Server::refuseConnection()
 
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	close(fd);
-	// std::cout << "fd limit reached, connection refused\n";
 	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused", MED);
 }
 
@@ -125,16 +124,16 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	{
 		client->rBuf[bytes] = '\0';
 		if (strstr(client->rBuf, "\r\n\r\n") != NULL
-			&& client->status != BODYPARSING)
+			&& client->status != Client::BODYPARSING)
 		{
 			log = "REQUEST:\n";
 			log += client->rBuf;
 			g_logger.log(log, HIGH);
-			client->lastDate = _handler._helper.getDate();
+			client->last_date = _handler._helper.getDate();
 			_handler.parseRequest(*client, _conf);
 			client->setWriteState(true);
 		}
-		if (client->status == BODYPARSING)
+		if (client->status == Client::BODYPARSING)
 			_handler.parseBody(*client);
 		return (1);
 	}
@@ -172,14 +171,14 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 		else
 			memset(client->wBuf, 0, BUFFER_SIZE + 1);
 	}
-	if (client->status != STANDBY && client->status != DONE)
+	if (client->status != Client::STANDBY && client->status != Client::DONE)
 		_handler.dispatcher(*client);
-	else if (client->status == STANDBY)
+	else if (client->status == Client::STANDBY)
 	{
-		if (getTimeDiff(client->lastDate) >= TIMEOUT)
-			client->status = DONE;
+		if (getTimeDiff(client->last_date) >= TIMEOUT)
+			client->status = Client::DONE;
 	}
-	if (client->status == DONE)
+	if (client->status == Client::DONE)
 	{
 		delete client;
 		_clients.erase(it);

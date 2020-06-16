@@ -44,24 +44,28 @@ int 	main(int ac, char **av)
 		readSet = rSet;
 		writeSet = wSet;
 		select(config.getMaxFd(g_servers) + 1, &readSet, &writeSet, NULL, &timeout);
-		for (std::vector<Server>::iterator it(g_servers.begin()); it != g_servers.end(); ++it)
+		for (std::vector<Server>::iterator s(g_servers.begin()); s != g_servers.end(); ++s)
 		{
-			if (FD_ISSET(it->getFd(), &readSet))
+			if (FD_ISSET(s->getFd(), &readSet))
 			{
 				if (config.getOpenFd(g_servers) > MAX_FD)
-					it->refuseConnection();
+					s->refuseConnection();
 				else
-					it->acceptConnection();
+					s->acceptConnection();
 			}
-			for (std::vector<Client*>::iterator it2(it->_clients.begin()); it2 != it->_clients.end(); ++it2)
+			for (std::vector<Client*>::iterator c(s->_clients.begin()); c != s->_clients.end(); ++c)
 			{
-				client = *it2;
-				if (FD_ISSET(client->getFd(), &readSet))
-					if (!it->readRequest(it2))
+				client = *c;
+				if (FD_ISSET(client->fd, &readSet))
+					if (!s->readRequest(c))
 						break ;
-				if (FD_ISSET(client->getFd(), &writeSet))
-					if (!it->writeResponse(it2))
+				if (FD_ISSET(client->fd, &writeSet))
+					if (!s->writeResponse(c))
 						break ;
+				// if (FD_ISSET(client->file_fd, &readSet))
+				// 	client->readFile();
+				// if (FD_ISSET(client->file_fd, &writeSet))
+				// 	client->writeFile();
 			}	
 		}
 	}

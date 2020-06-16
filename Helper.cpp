@@ -38,7 +38,7 @@ void			Helper::getErrorPage(Client &client)
 	std::string		path;
 
 	path = client.conf["error"] + "/" + client.res.status_code.substr(0, 3) + ".html";
-	client.fileFd = open(path.c_str(), O_RDONLY);
+	client.file_fd = open(path.c_str(), O_RDONLY);
 }
 
 std::string		Helper::getDate()
@@ -92,7 +92,7 @@ void			Helper::fillStatus(Client &client)
 
 	status = client.res.version + " " + client.res.status_code + "\r\n";
 	strcpy(client.wBuf, status.c_str());
-	client.status = HEADERS;
+	client.status = Client::HEADERS;
 }
 
 void			Helper::fillHeaders(Client &client)
@@ -109,7 +109,7 @@ void			Helper::fillHeaders(Client &client)
 	}
 	result += "\r\n";
 	strcpy(client.wBuf, result.c_str());
-	client.status = BODY;
+	client.status = Client::BODY;
 }
 
 void			Helper::fillBody(Client &client)

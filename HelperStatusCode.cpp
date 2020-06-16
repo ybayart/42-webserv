@@ -34,10 +34,10 @@ int			Helper::GETStatus(Client &client)
 	}
 	if (client.res.status_code == OK)
 	{
-		client.fileFd = open(client.conf["path"].c_str(), O_RDONLY);
-		fstat(client.fileFd, &info);
+		client.file_fd = open(client.conf["path"].c_str(), O_RDONLY);
+		fstat(client.file_fd, &info);
 		if ((S_ISDIR(info.st_mode) && client.conf["listing"] == "on")
-		|| (!S_ISDIR(info.st_mode) && client.fileFd != -1))
+		|| (!S_ISDIR(info.st_mode) && client.file_fd != -1))
 			return (1);
 		else
 			client.res.status_code = NOTFOUND;
@@ -72,11 +72,11 @@ int			Helper::POSTStatus(Client &client)
 		if (client.conf.find("CGI") != client.conf.end()
 		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
 		&& client.conf.find("exec") != client.conf.end())
-			client.fileFd = open(client.conf["exec"].c_str(), O_RDONLY);
+			client.file_fd = open(client.conf["exec"].c_str(), O_RDONLY);
 		else
-			client.fileFd = open(client.conf["path"].c_str(), O_RDONLY);
-		fstat(client.fileFd, &info);
-		if (client.fileFd == -1 || S_ISDIR(info.st_mode))
+			client.file_fd = open(client.conf["path"].c_str(), O_RDONLY);
+		fstat(client.file_fd, &info);
+		if (client.file_fd == -1 || S_ISDIR(info.st_mode))
 			client.res.status_code = NOTFOUND;
 		else
 			return (1);
@@ -110,7 +110,7 @@ int			Helper::PUTStatus(Client &client)
 				client.res.status_code = NOCONTENT;
 				close(ret);
 			}
-			client.fileFd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
+			client.file_fd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
 			return (1);
 		}
 	}

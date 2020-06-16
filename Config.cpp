@@ -123,6 +123,7 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 	std::string			line;
 	std::string			key;
 	std::string			value;
+	size_t				pos;
 
 	prec.pop_back();
 	while (prec.back() == ' ' || prec.back() == '\t')
@@ -150,12 +151,29 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 			getContent(is, context, line, config);
 		else
 		{
-			key = line.substr(0, line.find(' '));
-			value = line.substr(line.find(' ') + 1);
-			value.pop_back();
-			// std::cout << key + " : " + value + " / c: " + context << std::endl;
+			pos = 0;
+			while (line[pos])
+			{
+				while (line[pos] && line[pos] != ' ' && line[pos] != '\t')
+				{
+					key += line[pos];
+					++pos;
+				}
+				while (line[pos] == ' ' || line[pos] == '\t')
+					++pos;
+				while (line[pos] && line[pos] != ';')
+				{
+					value += line[pos];
+					++pos;
+				}
+				if (line[pos])
+					pos++;
+			}
+			std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
 			config[context].insert(tmp);
+			key.clear();
+			value.clear();
 		}
 	}
 	if (line != "}")

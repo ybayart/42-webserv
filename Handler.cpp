@@ -32,14 +32,14 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 		if (client.conf["root"][0] != '\0')
 			chdir(client.conf["root"].c_str());
 		if (request.method == "POST" || request.method == "PUT")
-			client.status = BODYPARSING;
+			client.status = Client::BODYPARSING;
 		else
-			client.status = CODE;
+			client.status = Client::CODE;
 	}
 	else
 	{
 		request.method = "BAD";
-		client.status = CODE;
+		client.status = Client::CODE;
 	}
 	client.req = request;
 	tmp = client.rBuf;
@@ -76,9 +76,9 @@ void			Handler::parseBody(Client &client)
 	else
 	{
 		client.req.method = "BAD";
-		client.status = CODE;
+		client.status = Client::CODE;
 	}
-	if (client.status == CODE)
+	if (client.status == Client::CODE)
 		g_logger.log("body size parsed from " + client.ip + ":" + std::to_string(client.port) + ": " + std::to_string(client.req.body.size()), MED);
 }
 
@@ -94,7 +94,7 @@ void			Handler::getBody(Client &client)
 		memset(client.rBuf + client.chunk.len, 0, BUFFER_SIZE - client.chunk.len);
 		client.req.body += client.rBuf;
 		client.chunk.len = 0;
-		client.status = CODE;
+		client.status = Client::CODE;
 	}
 	else
 	{
@@ -120,7 +120,7 @@ void			Handler::dechunkBody(Client &client)
 	if (client.chunk.done)
 	{
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
-		client.status = CODE;
+		client.status = Client::CODE;
 		client.chunk.found = false;
 		client.chunk.done = false;
 		return ;
@@ -242,9 +242,9 @@ void			Handler::negotiate(Client &client)
 	if (fd != -1)
 	{
 		client.conf["path"] = path;
-		if (client.fileFd != -1)
-			close(client.fileFd);
-		client.fileFd = fd;
+		if (client.file_fd != -1)
+			close(client.file_fd);
+		client.file_fd = fd;
 		client.res.status_code = OK;
 	}
 }
@@ -332,7 +332,7 @@ void			Handler::execCGI(Client &client)
 	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
 	g_logger.log("executing CGI for " + client.ip + ":" + std::to_string(client.port), MED);
-	if ((client.pid = fork()) == 0)
+	if ((client.cgi_pid = fork()) == 0)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
@@ -358,17 +358,17 @@ bool		Handler::readCGIResult(Client &client)
 	char			buffer[BUFFER_SIZE + 1];
 	int				bytes;
 
-	if (waitpid(client.pid, NULL, WNOHANG) == 0)
+	if (waitpid(client.cgi_pid, NULL, WNOHANG) == 0)
 		return (false);
-	if (client.fileFd == -1)
-		client.fileFd = open(client.tmp_path.c_str(), O_RDONLY);
-	bytes = read(client.fileFd, buffer, BUFFER_SIZE);
+	if (client.file_fd == -1)
+		client.file_fd = open(client.tmp_path.c_str(), O_RDONLY);
+	bytes = read(client.file_fd, buffer, BUFFER_SIZE);
 	buffer[bytes] = '\0';
 	client.file_str += buffer;
 	if (bytes == 0)
 	{
-		close(client.fileFd);
-		client.fileFd = -1;
+		close(client.file_fd);
+		client.file_fd = -1;
 		unlink(client.tmp_path.c_str());
 		return (true);
 	}
