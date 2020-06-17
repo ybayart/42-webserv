@@ -242,9 +242,9 @@ void			Handler::negotiate(Client &client)
 	if (fd != -1)
 	{
 		client.conf["path"] = path;
-		if (client.file_fd != -1)
-			close(client.file_fd);
-		client.file_fd = fd;
+		if (client.read_fd != -1)
+			close(client.read_fd);
+		client.read_fd = fd;
 		client.res.status_code = OK;
 	}
 }
@@ -299,8 +299,6 @@ void			Handler::execCGI(Client &client)
 	std::string		path;
 	int				ret;
 	int				tubes[2];
-	int				bytes;
-	int				file_tmp;
 
 	if (client.conf.find("php") != client.conf.end()
 	&& client.conf["path"].find(".php") != std::string::npos)
@@ -314,15 +312,14 @@ void			Handler::execCGI(Client &client)
 	args[1] = strdup(client.conf["path"].c_str());
 	args[2] = NULL;
 	env = _helper.setEnv(client);
-	client.tmp_path = "/tmp/cgi.tmp";
-	file_tmp = open(client.tmp_path.c_str(), O_WRONLY | O_CREAT, 0666);
+	client.tmp_fd = open(TMP_PATH, O_WRONLY | O_CREAT, 0666);
 	pipe(tubes);
 	g_logger.log("executing CGI for " + client.ip + ":" + std::to_string(client.port), MED);
 	if ((client.cgi_pid = fork()) == 0)
 	{
 		close(tubes[1]);
 		dup2(tubes[0], 0);
-		dup2(file_tmp, 1);
+		dup2(client.tmp_fd, 1);
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
@@ -331,11 +328,9 @@ void			Handler::execCGI(Client &client)
 	else
 	{
 		close(tubes[0]);
-		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
-		close(file_tmp);
-		close(tubes[1]);
-		client.file_fd = open(client.tmp_path.c_str(), O_RDONLY);
-		g_logger.log("sent " + std::to_string(bytes) + " bytes to CGI stdin", MED);
+		client.write_fd = tubes[1];
+		client.read_fd = open(TMP_PATH, O_RDONLY);
+		client.setFileToWrite(tubes[1], true);
 	}
 	_helper.freeAll(args, env);
 }

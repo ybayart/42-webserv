@@ -3,7 +3,7 @@
 #include "Logger.hpp"
 
 std::vector<Server>		g_servers;
-Logger					g_logger(1, "console", LOW);
+Logger					g_logger(1, "/tmp/log.txt", HIGH);
 
 int		ret_error(std::string error)
 {
@@ -62,13 +62,12 @@ int 	main(int ac, char **av)
 				if (FD_ISSET(client->fd, &writeSet))
 					if (!s->writeResponse(c))
 						break ;
-				if (client->file_fd != -1)
-				{
-					if (FD_ISSET(client->file_fd, &readSet))
-						client->readFile();
-					else if (FD_ISSET(client->file_fd, &writeSet))
+				if (client->write_fd != -1)
+					if (FD_ISSET(client->write_fd, &writeSet))
 						client->writeFile();
-				}
+				if (client->read_fd != -1)
+					if (FD_ISSET(client->read_fd, &readSet))
+						client->readFile();
 			}	
 		}
 	}

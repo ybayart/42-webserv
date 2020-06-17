@@ -14,6 +14,7 @@
 #include "Logger.hpp"
 
 #define BUFFER_SIZE 4096
+#define TMP_PATH 	"/tmp/cgi.tmp"
 
 extern Logger g_logger;
 
@@ -46,7 +47,8 @@ class Client
 		};
 
 		int			fd;
-		int			file_fd;
+		int			read_fd;
+		int			write_fd;
 
 		void		readFile();
 		void		writeFile();
@@ -55,13 +57,13 @@ class Client
 		int			port;
 		int			status;
 		int			cgi_pid;
+		int			tmp_fd;
 		char		*rBuf;
 		fd_set		*rSet;
 		fd_set		*wSet;
 		Request		req;
 		Response	res;
 		std::string	ip;
-		std::string	tmp_path;
 		std::string	last_date;
 		std::string	response;
 		t_conf 		conf;

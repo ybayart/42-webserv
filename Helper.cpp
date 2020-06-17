@@ -38,7 +38,7 @@ void			Helper::getErrorPage(Client &client)
 	std::string		path;
 
 	path = client.conf["error"] + "/" + client.res.status_code.substr(0, 3) + ".html";
-	client.file_fd = open(path.c_str(), O_RDONLY);
+	client.read_fd = open(path.c_str(), O_RDONLY);
 }
 
 std::string		Helper::getDate()

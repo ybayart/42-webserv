@@ -25,8 +25,10 @@ int		Server::getMaxFd()
 	for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
 	{
 		client = *it;
-		if (client->file_fd > _maxFd)
-			_maxFd = client->file_fd;
+		if (client->read_fd > _maxFd)
+			_maxFd = client->read_fd;
+		if (client->write_fd > _maxFd)
+			_maxFd = client->write_fd;
 	}
 	return (_maxFd);
 }
@@ -45,7 +47,9 @@ int		Server::getOpenFd()
 	{
 		client = *it;
 		nb += 1;
-		if (client->file_fd != -1)
+		if (client->read_fd != -1)
+			nb += 1;
+		if (client->write_fd != -1)
 			nb += 1;
 	}
 	return (nb);
@@ -98,7 +102,7 @@ void	Server::refuseConnection()
 
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	close(fd);
-	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused", MED);
+	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused", LOW);
 }
 
 void	Server::acceptConnection()

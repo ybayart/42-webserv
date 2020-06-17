@@ -1,7 +1,7 @@
 #include "Client.hpp"
 
 Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
-: fd(filed), file_fd(-1), status(PARSING), cgi_pid(-1), rSet(r), wSet(w)
+: fd(filed), read_fd(-1), write_fd(-1), status(PARSING), cgi_pid(-1), tmp_fd(-1), rSet(r), wSet(w)
 {
 	ip = inet_ntoa(info.sin_addr);
 	port = htons(info.sin_port);
@@ -19,14 +19,22 @@ Client::~Client()
 {
 	free(rBuf);
 	close(fd);
-	close(file_fd);
-	unlink(tmp_path.c_str());
 	FD_CLR(fd, rSet);
 	FD_CLR(fd, wSet);
-	if (file_fd != -1)
+	if (read_fd != -1)
 	{
-		FD_CLR(file_fd, rSet);
-		FD_CLR(file_fd, wSet);	
+		close(read_fd);
+		FD_CLR(read_fd, rSet);
+	}
+	if (write_fd != -1)
+	{
+		close(write_fd);
+		FD_CLR(write_fd, wSet);	
+	}
+	if (tmp_fd != -1)
+	{
+		close(tmp_fd);
+		unlink(TMP_PATH);
 	}
 	g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
 }
@@ -70,35 +78,42 @@ void	Client::readFile()
 
 	if (cgi_pid != -1)
 	{
-		waitpid(cgi_pid, NULL, 0);
+		if (waitpid(cgi_pid, NULL, WNOHANG) == 0)
+			return ;
+		close(tmp_fd);
+		tmp_fd = -1;
 		cgi_pid = -1;
 	}
-	ret = read(file_fd, buffer, BUFFER_SIZE);
+	ret = read(read_fd, buffer, BUFFER_SIZE);
 	if (ret >= 0)
 		buffer[ret] = '\0';
 	res.body += buffer;
 	if (ret == 0)
 	{
-		close(file_fd);
-		unlink(tmp_path.c_str());
-		setFileToRead(file_fd, false);
-		file_fd = -1;
+		close(read_fd);
+		unlink(TMP_PATH);
+		setFileToRead(read_fd, false);
+		read_fd = -1;
 	}
 }
 
 void	Client::writeFile()
 {
-	unsigned long ret;
+	int ret;
 
-	ret = write(file_fd, req.body.c_str(), req.body.size());
-	if (ret < req.body.size())
+	ret = write(write_fd, req.body.c_str(), req.body.size());
+	if (cgi_pid != -1)
+		g_logger.log("sent " + std::to_string(ret) + " bytes to CGI stdin", MED);
+	else
+		g_logger.log("write " + std::to_string(ret) + " bytes in file", MED);
+	if ((unsigned long)ret < req.body.size())
 		req.body = req.body.substr(ret);
 	else
 	{
 		req.body.clear();
-		close(file_fd);
-		setFileToWrite(file_fd, false);
-		file_fd = -1;
+		close(write_fd);
+		setFileToWrite(write_fd, false);
+		write_fd = -1;
 	}
 }
 
@@ -107,8 +122,10 @@ void	Client::setToStandBy()
 	g_logger.log(req.method + " from " + ip + ":" + std::to_string(port) + " answered", LOW);
 	status = STANDBY;
 	setReadState(true);
-	close(file_fd);
-	file_fd = -1;
+	close(read_fd);
+	read_fd = -1;
+	close(write_fd);
+	write_fd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
 	conf.clear();
 	req.body.clear();
