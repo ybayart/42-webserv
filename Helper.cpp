@@ -198,40 +198,35 @@ void			Helper::parseAcceptLanguage(Client &client, std::multimap<std::string, st
 	std::string							q;
 
 	to_parse = client.req.headers["Accept-Language"];
-	std::cout << "[" + to_parse + "]\n";
 	int i = 0;
-	while (to_parse[i] != '\0' && to_parse[i] != '\r')
+	while (to_parse[i] != '\0')
 	{
 		language.clear();
 		q.clear();
-		while (to_parse[i] && to_parse[i] != ',' && 
-		to_parse[i] != ';' && to_parse[i] != '\r')
+		while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != ';')
 		{
 			language += to_parse[i];
 			++i;
 		}
-		if (to_parse[i] == ',' || to_parse[i] == '\r')
+		if (to_parse[i] == ',' || to_parse[i] == '\0')
 			q = "1";
 		else if (to_parse[i] == ';')
 		{
 			i += 3;
-			while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
+			while (to_parse[i] && to_parse[i] != ',')
 			{
 				q += to_parse[i];
 				++i;
 			}
 		}
-		++i;
+		if (to_parse[i])
+			++i;
 		std::pair<std::string, std::string>	pair(q, language);
 		map.insert(pair);
 	}
-	// for (std::multimap<std::string, std::string>::iterator it(map.begin()); it != map.end(); ++it)
-	// {
-	// 	std::cout << it->first + ":" + it->second << std::endl;
-	// }
 }
 
-void			Helper::parseAcceptCharsets(Client &client, std::multimap<std::string, std::string> &map)
+void			Helper::parseAcceptCharset(Client &client, std::multimap<std::string, std::string> &map)
 {
 	std::string							charset;
 	std::string							to_parse;
@@ -239,28 +234,28 @@ void			Helper::parseAcceptCharsets(Client &client, std::multimap<std::string, st
 
 	to_parse = client.req.headers["Accept-Charset"];
 	int i = 0;
-	while (to_parse[i] != '\0' && to_parse[i] != '\r')
+	while (to_parse[i] != '\0')
 	{
 		charset.clear();
 		q.clear();
-		while (to_parse[i] && to_parse[i] != ',' && 
-		to_parse[i] != ';' && to_parse[i] != '\r')
+		while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != ';')
 		{
 			charset += to_parse[i];
 			++i;
 		}
-		if (to_parse[i] == ',' || to_parse[i] == '\r')
+		if (to_parse[i] == ',' || to_parse[i] == '\0')
 			q = "1";
 		else if (to_parse[i] == ';')
 		{
 			i += 3;
-			while (to_parse[i] && to_parse[i] != ',' && to_parse[i] != '\r')
+			while (to_parse[i] && to_parse[i] != ',')
 			{
 				q += to_parse[i];
 				++i;
 			}
 		}
-		++i;
+		if (to_parse[i])
+			++i;
 		std::pair<std::string, std::string>	pair(q, charset);
 		map.insert(pair);
 	}

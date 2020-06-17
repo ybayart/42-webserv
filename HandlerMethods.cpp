@@ -1,5 +1,19 @@
 #include "Handler.hpp"
 
+void	Handler::dispatcher(Client &client)
+{
+	typedef void	(Handler::*ptr)(Client &client);
+	std::map<std::string, ptr> map;
+
+	map["GET"] = &Handler::handleGet;
+	map["HEAD"] = &Handler::handleHead;
+	map["PUT"] = &Handler::handlePut;
+	map["POST"] = &Handler::handlePost;
+	map["BAD"] = &Handler::handleBadRequest;
+
+	(this->*map[client.req.method])(client);
+}
+
 void	Handler::handleGet(Client &client)
 {
 	struct stat	file_info;
@@ -12,7 +26,11 @@ void	Handler::handleGet(Client &client)
 				_helper.getErrorPage(client);
 			fstat(client.file_fd, &file_info);
 			if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+			{
+				close(client.file_fd);
+				client.file_fd = -1;
 				createListing(client);
+			}
 			else if (client.res.status_code == NOTFOUND)
 				negotiate(client);
 			if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
@@ -26,7 +44,8 @@ void	Handler::handleGet(Client &client)
 			}
 			else
 				client.status = Client::HEADERS;
-			client.setFileToRead(client.file_fd, true);	
+			if (client.file_fd != -1)
+				client.setFileToRead(client.file_fd, true);	
 			break ;
 		case Client::CGI:
 			if (client.file_fd == -1)

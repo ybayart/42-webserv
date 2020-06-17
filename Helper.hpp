@@ -24,7 +24,7 @@ class Helper
 		char			**setEnv(Client &client);
 		std::string		decode64(const char *data);
 		void			parseAcceptLanguage(Client &client, std::multimap<std::string, std::string> &map);
-		void			parseAcceptCharsets(Client &client, std::multimap<std::string, std::string> &map);
+		void			parseAcceptCharset(Client &client, std::multimap<std::string, std::string> &map);
 
 		int				ft_power(int nb, int power);
 		int				fromHexa(const char *nb);

@@ -1,19 +1,19 @@
 #include "Server.hpp"
 
-Server::Server() : _port(-1)
+Server::Server() : _fd(-1), _maxFd(-1), _port(-1)
 {
-
+	memset(&_info, 0, sizeof(_info));
 }
 
 Server::~Server()
 {
-	if (_port != -1)
+	if (_fd != -1)
 	{
 		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
 			delete *it;
 		_clients.clear();
 		close(_fd);
-		// std::cout << "closed server listening on port " << _port << "\n";
+		FD_CLR(_fd, _rSet);
 		g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }

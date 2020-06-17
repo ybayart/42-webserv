@@ -9,7 +9,7 @@ body = "num1=12&num2=145";
 # a = requests.get('http://localhost:8080/add.php?num1=2&num2=34');
 # b = requests.post('http://localhost:8080/add.php', data = body);
 # for x in range(1,50):
-a = requests.get('http://localhost:8080')
+a = requests.get('http://localhost:8080/index.html')
 b = requests.get('http://localhost:8080/directory/nop');
 # 	c = requests.get('http://localhost:443')
 # 	b = requests.post('http://localhost:8080/directory/youpi.bla', data = body)

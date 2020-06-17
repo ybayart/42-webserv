@@ -196,7 +196,7 @@ void			Handler::negotiate(Client &client)
 	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
 		_helper.parseAcceptLanguage(client, languageMap);
 	if (client.req.headers.find("Accept-Charset") != client.req.headers.end())
-		_helper.parseAcceptCharsets(client, charsetMap);
+		_helper.parseAcceptCharset(client, charsetMap);
 	if (!languageMap.empty())
 	{
 		for (std::multimap<std::string, std::string>::reverse_iterator it(languageMap.rbegin()); it != languageMap.rend(); ++it)
@@ -274,20 +274,6 @@ void			Handler::createListing(Client &client)
 	client.res.body += "</body>\n</html>\n";
 }
 
-void			Handler::dispatcher(Client &client)
-{
-	typedef void	(Handler::*ptr)(Client &client);
-	std::map<std::string, ptr> map;
-
-	map["GET"] = &Handler::handleGet;
-	map["HEAD"] = &Handler::handleHead;
-	map["PUT"] = &Handler::handlePut;
-	map["POST"] = &Handler::handlePost;
-	map["BAD"] = &Handler::handleBadRequest;
-
-	(this->*map[client.req.method])(client);
-}
-
 //TO COMPLETE
 bool			Handler::checkSyntax(const Request &req)
 {
@@ -349,7 +335,7 @@ void			Handler::execCGI(Client &client)
 		close(file_tmp);
 		close(tubes[1]);
 		client.file_fd = open(client.tmp_path.c_str(), O_RDONLY);
-		g_logger.log("sent " + std::to_string(bytes) + " to CGI stdin", MED);
+		g_logger.log("sent " + std::to_string(bytes) + " bytes to CGI stdin", MED);
 	}
 	_helper.freeAll(args, env);
 }
