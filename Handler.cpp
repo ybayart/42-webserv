@@ -255,23 +255,23 @@ void			Handler::createListing(Client &client)
 	struct dirent	*cur;
 
 	dir = opendir(client.conf["path"].c_str());
-	client.file_str = "<html>\n<body>\n";
-	client.file_str += "<h1>Directory listing</h1>\n";
+	client.res.body = "<html>\n<body>\n";
+	client.res.body += "<h1>Directory listing</h1>\n";
 	while ((cur = readdir(dir)) != NULL)
 	{
 		if (cur->d_name[0] != '.')
 		{
-			client.file_str += "<a href=\"" + client.req.uri;
+			client.res.body += "<a href=\"" + client.req.uri;
 			if (client.req.uri != "/")
-				client.file_str += "/";
-			client.file_str += cur->d_name;
-			client.file_str += "\">";
-			client.file_str += cur->d_name;
-			client.file_str += "</a><br>\n";
+				client.res.body += "/";
+			client.res.body += cur->d_name;
+			client.res.body += "\">";
+			client.res.body += cur->d_name;
+			client.res.body += "</a><br>\n";
 		}
 	}
 	closedir(dir);
-	client.file_str += "</body>\n</html>\n";
+	client.res.body += "</body>\n</html>\n";
 }
 
 void			Handler::dispatcher(Client &client)

@@ -21,10 +21,13 @@ Client::~Client()
 	close(fd);
 	close(file_fd);
 	unlink(tmp_path.c_str());
-	if (FD_ISSET(fd, rSet))
-		FD_CLR(fd, rSet);
-	if (FD_ISSET(fd, wSet))
-		FD_CLR(fd, wSet);
+	FD_CLR(fd, rSet);
+	FD_CLR(fd, wSet);
+	if (file_fd != -1)
+	{
+		FD_CLR(file_fd, rSet);
+		FD_CLR(file_fd, wSet);	
+	}
 	g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
 }
 
@@ -107,7 +110,6 @@ void	Client::setToStandBy()
 	close(file_fd);
 	file_fd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
-	file_str.clear();
 	conf.clear();
 	req.body.clear();
 	res.body.clear();

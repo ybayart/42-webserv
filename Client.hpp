@@ -63,7 +63,6 @@ class Client
 		std::string	ip;
 		std::string	tmp_path;
 		std::string	last_date;
-		std::string	file_str;
 		std::string	response;
 		t_conf 		conf;
 		t_chunk		chunk;
