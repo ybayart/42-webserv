@@ -86,32 +86,6 @@ int				Helper::findLen(Client &client)
 	return (len);
 }
 
-void			Helper::fillStatus(Client &client)
-{
-	std::string		status;
-
-	status = client.res.version + " " + client.res.status_code + "\r\n";
-	strcpy(client.wBuf, status.c_str());
-	client.status = Client::HEADERS;
-}
-
-void			Helper::fillHeaders(Client &client)
-{
-	std::string		result;
-	std::map<std::string, std::string>::const_iterator b;
-
-	b = client.res.headers.begin();
-	while (b != client.res.headers.end())
-	{
-		if (b->second != "")
-			result += b->first + ": " + b->second + "\r\n";
-		++b;
-	}
-	result += "\r\n";
-	strcpy(client.wBuf, result.c_str());
-	client.status = Client::BODY;
-}
-
 void			Helper::fillBody(Client &client)
 {
 	std::string		tmp;
@@ -132,7 +106,6 @@ void			Helper::fillBody(Client &client)
 		client.chunk.len -= tmp.size();
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 	}
-	// std::cout << "body size: " << client.req.body.size() << " [" << client.ip << ":" << client.port << "]\n";
 }			
 
 int				Helper::ft_power(int nb, int power)
@@ -225,6 +198,7 @@ void			Helper::parseAcceptLanguage(Client &client, std::multimap<std::string, st
 	std::string							q;
 
 	to_parse = client.req.headers["Accept-Language"];
+	std::cout << "[" + to_parse + "]\n";
 	int i = 0;
 	while (to_parse[i] != '\0' && to_parse[i] != '\r')
 	{
@@ -290,10 +264,6 @@ void			Helper::parseAcceptCharsets(Client &client, std::multimap<std::string, st
 		std::pair<std::string, std::string>	pair(q, charset);
 		map.insert(pair);
 	}
-	// for (std::multimap<std::string, std::string>::iterator it(map.begin()); it != map.end(); ++it)
-	// {
-	// 	std::cout << it->first + ":" + it->second << std::endl;
-	// }
 }
 
 char			**Helper::setEnv(Client &client)

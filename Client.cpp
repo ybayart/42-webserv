@@ -1,14 +1,12 @@
 #include "Client.hpp"
 
 Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
-: fd(filed), file_fd(-1), status(PARSING), rSet(r), wSet(w)
+: fd(filed), file_fd(-1), status(PARSING), cgi_pid(-1), rSet(r), wSet(w)
 {
 	ip = inet_ntoa(info.sin_addr);
 	port = htons(info.sin_port);
 	rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-	wBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	memset(rBuf, 0, BUFFER_SIZE + 1);
-	memset(wBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, rSet);
 	chunk.len = 0;
@@ -20,7 +18,6 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 Client::~Client()
 {
 	free(rBuf);
-	free(wBuf);
 	close(fd);
 	close(file_fd);
 	unlink(tmp_path.c_str());
@@ -63,6 +60,44 @@ void	Client::setFileToWrite(int fd, bool state)
 		FD_CLR(fd, wSet);
 }
 
+void	Client::readFile()
+{
+	char	buffer[BUFFER_SIZE + 1];
+	int		ret;
+
+	if (cgi_pid != -1)
+	{
+		waitpid(cgi_pid, NULL, 0);
+		cgi_pid = -1;
+	}
+	ret = read(file_fd, buffer, BUFFER_SIZE);
+	if (ret >= 0)
+		buffer[ret] = '\0';
+	res.body += buffer;
+	if (ret == 0)
+	{
+		close(file_fd);
+		unlink(tmp_path.c_str());
+		setFileToRead(file_fd, false);
+		file_fd = -1;
+	}
+}
+
+void	Client::writeFile()
+{
+	unsigned long ret;
+
+	ret = write(file_fd, req.body.c_str(), req.body.size());
+	if (ret < req.body.size())
+		req.body = req.body.substr(ret);
+	else
+	{
+		req.body.clear();
+		close(file_fd);
+		setFileToWrite(file_fd, false);
+		file_fd = -1;
+	}
+}
 
 void	Client::setToStandBy()
 {
@@ -75,6 +110,7 @@ void	Client::setToStandBy()
 	file_str.clear();
 	conf.clear();
 	req.body.clear();
+	res.body.clear();
 	res.status_code.clear();
 	res.headers.clear();
 	req.headers.clear();

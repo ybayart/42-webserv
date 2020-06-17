@@ -41,8 +41,8 @@ class Handler
 		void			getBody(Client &client);
 		void			dechunkBody(Client &client);
 		void			execCGI(Client &client);
-		bool			readCGIResult(Client &client);
 		void			parseCGIResult(Client &client);
+		void			createResponse(Client &client);
 
 };
 

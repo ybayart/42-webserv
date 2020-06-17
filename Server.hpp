@@ -29,7 +29,7 @@ class Server
 		Server();
 		~Server();
 
-		int		getMaxFd() const;
+		int		getMaxFd();
 		int		getFd() const;
 		int		getOpenFd();
 		void	init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);

@@ -40,6 +40,7 @@ class Client
 			HEADERS,
 			CGI,
 			BODY,
+			RESPONSE,
 			STANDBY,
 			DONE
 		};
@@ -55,15 +56,15 @@ class Client
 		int			status;
 		int			cgi_pid;
 		char		*rBuf;
-		char		*wBuf;
 		fd_set		*rSet;
 		fd_set		*wSet;
 		Request		req;
 		Response	res;
 		std::string	ip;
-		std::string	file_str;
 		std::string	tmp_path;
 		std::string	last_date;
+		std::string	file_str;
+		std::string	response;
 		t_conf 		conf;
 		t_chunk		chunk;
 

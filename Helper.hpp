@@ -20,8 +20,6 @@ class Helper
 		std::string		findType(Request &req);
 		void			getErrorPage(Client &client);
 		int				findLen(Client &client);
-		void			fillStatus(Client &client);
-		void			fillHeaders(Client &client);
 		void			fillBody(Client &client);
 		char			**setEnv(Client &client);
 		std::string		decode64(const char *data);

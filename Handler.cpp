@@ -190,8 +190,8 @@ void			Handler::negotiate(Client &client)
 {
 	std::multimap<std::string, std::string> 	languageMap;
 	std::multimap<std::string, std::string> 	charsetMap;
-	int									fd = -1;
-	std::string							path;
+	int				fd = -1;
+	std::string		path;
 
 	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
 		_helper.parseAcceptLanguage(client, languageMap);
@@ -348,32 +348,10 @@ void			Handler::execCGI(Client &client)
 		bytes = write(tubes[1], client.req.body.c_str(), client.req.body.size());
 		close(file_tmp);
 		close(tubes[1]);
+		client.file_fd = open(client.tmp_path.c_str(), O_RDONLY);
 		g_logger.log("sent " + std::to_string(bytes) + " to CGI stdin", MED);
 	}
 	_helper.freeAll(args, env);
-}
-
-bool		Handler::readCGIResult(Client &client)
-{
-	char			buffer[BUFFER_SIZE + 1];
-	int				bytes;
-
-	if (waitpid(client.cgi_pid, NULL, WNOHANG) == 0)
-		return (false);
-	if (client.file_fd == -1)
-		client.file_fd = open(client.tmp_path.c_str(), O_RDONLY);
-	bytes = read(client.file_fd, buffer, BUFFER_SIZE);
-	buffer[bytes] = '\0';
-	client.file_str += buffer;
-	if (bytes == 0)
-	{
-		close(client.file_fd);
-		client.file_fd = -1;
-		unlink(client.tmp_path.c_str());
-		return (true);
-	}
-	else
-		return (false);
 }
 
 void		Handler::parseCGIResult(Client &client)
@@ -383,7 +361,9 @@ void		Handler::parseCGIResult(Client &client)
 	std::string		key;
 	std::string		value;
 
-	headers = client.file_str.substr(0, client.file_str.find("\r\n\r\n") + 1);
+	if (client.res.body.find("\r\n\r\n") == std::string::npos)
+		return ;
+	headers = client.res.body.substr(0, client.res.body.find("\r\n\r\n") + 1);
 	pos = headers.find("Status");
 	if (pos != std::string::npos)
 	{
@@ -417,7 +397,24 @@ void		Handler::parseCGIResult(Client &client)
 		if (headers[pos] == '\n')
 			pos++;
 	}
-	pos = client.file_str.find("\r\n\r\n") + 4;
-	client.file_str = client.file_str.substr(pos);
-	client.res.headers["Content-Length"] = std::to_string(client.file_str.size());
+	pos = client.res.body.find("\r\n\r\n") + 4;
+	client.res.body = client.res.body.substr(pos);
+	client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
+}
+
+void		Handler::createResponse(Client &client)
+{
+	std::map<std::string, std::string>::const_iterator b;
+
+	client.response = client.res.version + " " + client.res.status_code + "\r\n";
+	b = client.res.headers.begin();
+	while (b != client.res.headers.end())
+	{
+		if (b->second != "")
+			client.response += b->first + ": " + b->second + "\r\n";
+		++b;
+	}
+	client.response += "\r\n";
+	client.response += client.res.body;
+	client.res.body.clear();
 }

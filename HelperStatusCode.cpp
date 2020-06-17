@@ -35,12 +35,15 @@ int			Helper::GETStatus(Client &client)
 	if (client.res.status_code == OK)
 	{
 		client.file_fd = open(client.conf["path"].c_str(), O_RDONLY);
-		fstat(client.file_fd, &info);
-		if ((S_ISDIR(info.st_mode) && client.conf["listing"] == "on")
-		|| (!S_ISDIR(info.st_mode) && client.file_fd != -1))
-			return (1);
-		else
+		if (client.file_fd == -1)
 			client.res.status_code = NOTFOUND;
+		else
+		{
+			fstat(client.file_fd, &info);
+			if (!S_ISDIR(info.st_mode)
+			|| (S_ISDIR(info.st_mode) && client.conf["listing"] == "on"))
+				return (1);
+		}
 	}
 	return (0);
 }

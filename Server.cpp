@@ -18,8 +18,16 @@ Server::~Server()
 	}
 }
 
-int		Server::getMaxFd() const
+int		Server::getMaxFd()
 {
+	Client	*client;
+
+	for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
+	{
+		client = *it;
+		if (client->file_fd > _maxFd)
+			_maxFd = client->file_fd;
+	}
 	return (_maxFd);
 }
 
@@ -148,42 +156,39 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 
 int		Server::writeResponse(std::vector<Client*>::iterator it)
 {
-	int				bytes;
-	int				size;
+	unsigned long	bytes;
 	std::string		tmp;
 	std::string		log;
 	Client			*client;
 
 	client = *it;
-	size = strlen(client->wBuf);
-	if (size > 0)
-	{
-		bytes = write(client->fd, client->wBuf, size);
-		log = "RESPONSE:\n";
-		log += client->wBuf;
-		g_logger.log(log, HIGH);
-		if (bytes < size)
-		{
-			tmp = client->wBuf;
-			tmp = tmp.substr(bytes);
-			strcpy(client->wBuf, tmp.c_str());
-		}
-		else
-			memset(client->wBuf, 0, BUFFER_SIZE + 1);
-	}
 	if (client->status != Client::STANDBY && client->status != Client::DONE)
 		_handler.dispatcher(*client);
-	else if (client->status == Client::STANDBY)
+	switch (client->status)
 	{
-		if (getTimeDiff(client->last_date) >= TIMEOUT)
-			client->status = Client::DONE;
-	}
-	if (client->status == Client::DONE)
-	{
-		delete client;
-		_clients.erase(it);
-		g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
-		return (0);
+		case Client::RESPONSE:
+			log = "RESPONSE:\n";
+			log += client->response.substr(0, 128);
+			g_logger.log(log, HIGH);
+			bytes = write(client->fd, client->response.c_str(), client->response.size());
+			if (bytes < client->response.size())
+				client->response = client->response.substr(bytes);
+			else
+			{
+				client->response.clear();
+				client->setToStandBy();
+			}
+			client->last_date = _handler._helper.getDate();
+			break ;
+		case Client::STANDBY:
+			if (getTimeDiff(client->last_date) >= TIMEOUT)
+				client->status = Client::DONE;
+			break ;
+		case Client::DONE:
+			delete client;
+			_clients.erase(it);
+			g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
+			return (0);
 	}
 	return (1);
 }
