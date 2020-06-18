@@ -1,6 +1,4 @@
 ◦ Allow
 ◦ Content-Location
-◦ Location
-◦ Retry-After
 ◦ Transfer-Encoding
 ◦ WWW-Authenticate

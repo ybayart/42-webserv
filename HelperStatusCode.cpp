@@ -3,14 +3,18 @@
 int			Helper::getStatusCode(Client &client)
 {
 	typedef int	(Helper::*ptr)(Client &client);
-	std::map<std::string, ptr> map;
+	std::map<std::string, ptr> 	map;
+	int							ret;
 
 	map["GET"] = &Helper::GETStatus;
 	map["HEAD"] = &Helper::GETStatus;
 	map["PUT"] = &Helper::PUTStatus;
 	map["POST"] = &Helper::POSTStatus;
 
-	return ((this->*map[client.req.method])(client));
+	ret = (this->*map[client.req.method])(client);
+	if (ret == 0)
+		getErrorPage(client);
+	return (ret);
 }
 
 int			Helper::GETStatus(Client &client)

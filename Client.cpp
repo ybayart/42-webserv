@@ -57,18 +57,24 @@ void	Client::setWriteState(bool state)
 
 void	Client::setFileToRead(int fd, bool state)
 {
-	if (state)
-		FD_SET(fd, rSet);
-	else
-		FD_CLR(fd, rSet);
+	if (fd != -1)
+	{
+		if (state)
+			FD_SET(fd, rSet);
+		else
+			FD_CLR(fd, rSet);
+	}
 }
 
 void	Client::setFileToWrite(int fd, bool state)
 {
-	if (state)
-		FD_SET(fd, wSet);
-	else
-		FD_CLR(fd, wSet);
+	if (fd != -1)
+	{
+		if (state)
+			FD_SET(fd, wSet);
+		else
+			FD_CLR(fd, wSet);
+	}
 }
 
 void	Client::readFile()
@@ -119,7 +125,7 @@ void	Client::writeFile()
 
 void	Client::setToStandBy()
 {
-	g_logger.log(req.method + " from " + ip + ":" + std::to_string(port) + " answered", LOW);
+	g_logger.log(req.method + " from " + ip + ":" + std::to_string(port) + " answered", MED);
 	status = STANDBY;
 	setReadState(true);
 	close(read_fd);

@@ -1,9 +1,11 @@
 #ifndef Server_HPP
 #define Server_HPP
 
+#include <queue>
 #include "Handler.hpp"
 
 #define TIMEOUT 10
+#define RETRY	"25"
 
 class Server
 {
@@ -25,6 +27,7 @@ class Server
 
 	public:
 		std::vector<Client*>	_clients;
+		std::queue<int>			_tmp_clients;
 		
 		Server();
 		~Server();
@@ -37,6 +40,7 @@ class Server
 		void	acceptConnection();
 		int		readRequest(std::vector<Client*>::iterator it);
 		int		writeResponse(std::vector<Client*>::iterator it);
+		void	send503(int fd);
 
 	private:
 		int		getTimeDiff(std::string start);

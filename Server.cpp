@@ -99,10 +99,15 @@ void	Server::refuseConnection()
 	struct sockaddr_in	info;
 	socklen_t			len;
 
-
+	errno = 0;
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
-	close(fd);
-	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused", LOW);
+	if (fd == -1)
+	{
+		std::cerr << "error accept(): " << strerror(errno) << std::endl;
+		return ;
+	}
+	_tmp_clients.push(fd);
+	FD_SET(fd, _wSet);
 }
 
 void	Server::acceptConnection()
@@ -113,7 +118,13 @@ void	Server::acceptConnection()
 	Client				*newOne;
 
 	memset(&info, 0, sizeof(info));
+	errno = 0;
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
+	if (fd == -1)
+	{
+		// std::cerr << "error accept(): " << strerror(errno) << "\n";
+		return ;
+	}
 	if (fd > _maxFd)
 		_maxFd = fd;
 	newOne = new Client(fd, _rSet, _wSet, info);
@@ -195,6 +206,25 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 			return (0);
 	}
 	return (1);
+}
+
+void	Server::send503(int fd)
+{
+	std::string		response;
+
+	response = UNAVAILABLE;
+	response += "\r\n";
+	response += "Retry-After: ";
+	response += RETRY;
+	response += "\r\n";
+	response += "Server: webserv\r\n";
+	response += "\r\n";
+	response += UNAVAILABLE;
+	write(fd, response.c_str(), response.size());
+	close(fd);
+	FD_CLR(fd, _wSet);
+	_tmp_clients.pop();
+	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused, sent 503", LOW);
 }
 
 int		Server::getTimeDiff(std::string start)

@@ -9,5 +9,6 @@
 #define NOTFOUND 		"404 Not Found"
 #define NOTALLOWED		"405 Method Not Allowed"
 #define REQTOOLARGE		"413 Request Entity Too Large"
+#define UNAVAILABLE		"503 Service Unavailable"
 
 #endif

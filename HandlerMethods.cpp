@@ -22,30 +22,22 @@ void	Handler::handleGet(Client &client)
 	switch (client.status)
 	{
 		case Client::CODE:
-			if (!_helper.getStatusCode(client))
-				_helper.getErrorPage(client);
+			_helper.getStatusCode(client);
 			fstat(client.read_fd, &file_info);
 			if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
-			{
-				close(client.read_fd);
-				client.read_fd = -1;
 				createListing(client);
-			}
 			else if (client.res.status_code == NOTFOUND)
 				negotiate(client);
 			if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
-				close(client.read_fd);
-				client.read_fd = -1;
 				execCGI(client);
 				client.status = Client::CGI;
 			}
 			else
 				client.status = Client::HEADERS;
-			if (client.read_fd != -1)
-				client.setFileToRead(client.read_fd, true);	
+			client.setFileToRead(client.read_fd, true);	
 			break ;
 		case Client::CGI:
 			if (client.read_fd == -1)
@@ -84,9 +76,11 @@ void	Handler::handleHead(Client &client)
 	switch (client.status)
 	{
 		case Client::CODE:
-			if (!_helper.getStatusCode(client))
-				_helper.getErrorPage(client);
-			if (client.res.status_code == NOTFOUND)
+			_helper.getStatusCode(client);
+			fstat(client.read_fd, &file_info);
+			if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
+				createListing(client);
+			else if (client.res.status_code == NOTFOUND)
 				negotiate(client);
 			fstat(client.read_fd, &file_info);
 			if (client.res.status_code == OK)
@@ -113,14 +107,11 @@ void	Handler::handlePost(Client &client)
 			parseBody(client);
 			break ;
 		case Client::CODE:
-			if (!_helper.getStatusCode(client))
-				_helper.getErrorPage(client);
+			_helper.getStatusCode(client);
 			if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
-				close(client.read_fd);
-				client.read_fd = -1;
 				execCGI(client);
 				client.status = Client::CGI;
 			}
@@ -167,9 +158,7 @@ void	Handler::handlePut(Client &client)
 			parseBody(client);
 			break ;
 		case Client::CODE:
-			if (!_helper.getStatusCode(client))
-				_helper.getErrorPage(client);
-			else
+			if (_helper.getStatusCode(client))
 				client.setFileToWrite(client.write_fd, true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";

@@ -254,6 +254,8 @@ void			Handler::createListing(Client &client)
 	DIR				*dir;
 	struct dirent	*cur;
 
+	close(client.read_fd);
+	client.read_fd = -1;
 	dir = opendir(client.conf["path"].c_str());
 	client.res.body = "<html>\n<body>\n";
 	client.res.body += "<h1>Directory listing</h1>\n";
@@ -307,6 +309,8 @@ void			Handler::execCGI(Client &client)
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
+	close(client.read_fd);
+	client.read_fd = -1;	
 	args = (char **)(malloc(sizeof(char *) * 3));
 	args[0] = strdup(path.c_str());
 	args[1] = strdup(client.conf["path"].c_str());

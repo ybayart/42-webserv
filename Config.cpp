@@ -115,6 +115,7 @@ int				Config::getOpenFd(std::vector<Server> &servers)
 		nb += 1;
 		nb += it->getOpenFd();
 	}
+	// std::cout << "nb: " << nb << "\n";
 	return (nb);
 }
 

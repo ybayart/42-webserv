@@ -3,7 +3,7 @@
 #include "Logger.hpp"
 
 std::vector<Server>		g_servers;
-Logger					g_logger(1, "/tmp/log.txt", HIGH);
+Logger					g_logger(1, "console", MED);
 
 int		ret_error(std::string error)
 {
@@ -53,6 +53,9 @@ int 	main(int ac, char **av)
 				else
 					s->acceptConnection();
 			}
+			if (!s->_tmp_clients.empty())
+				if (FD_ISSET(s->_tmp_clients.front(), &writeSet))
+					s->send503(s->_tmp_clients.front());
 			for (std::vector<Client*>::iterator c(s->_clients.begin()); c != s->_clients.end(); ++c)
 			{
 				client = *c;
