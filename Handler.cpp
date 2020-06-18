@@ -192,6 +192,7 @@ void			Handler::negotiate(Client &client)
 	std::multimap<std::string, std::string> 	charsetMap;
 	int				fd = -1;
 	std::string		path;
+	std::string		ext;
 
 	if (client.req.headers.find("Accept-Language") != client.req.headers.end())
 		_helper.parseAcceptLanguage(client, languageMap);
@@ -205,11 +206,13 @@ void			Handler::negotiate(Client &client)
 			{
 				for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
 				{
-					path = client.conf["path"] + "." + it->second + "." + it2->second;
+					ext = it->second + "." + it2->second;
+					path = client.conf["path"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
 						break ;
-					path = client.conf["path"] + "." + it2->second + "." + it->second;
+					ext = it2->second + "." + it->second;
+					path = client.conf["path"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
 						break ;
@@ -217,7 +220,8 @@ void			Handler::negotiate(Client &client)
 			}
 			else
 			{
-				path = client.conf["path"] + "." + it->second;
+				ext = it->second;
+				path = client.conf["path"] + "." + ext;
 				fd = open(path.c_str(), O_RDONLY);
 				if (fd != -1)
 					break ;
@@ -232,6 +236,7 @@ void			Handler::negotiate(Client &client)
 		{
 			for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
 			{
+				ext = it2->second;
 				path = client.conf["path"] + "." + it2->second;
 				fd = open(path.c_str(), O_RDONLY);
 				if (fd != -1)
@@ -242,6 +247,7 @@ void			Handler::negotiate(Client &client)
 	if (fd != -1)
 	{
 		client.conf["path"] = path;
+		client.res.headers["Content-Location"] = client.req.uri + "." + ext;
 		if (client.read_fd != -1)
 			close(client.read_fd);
 		client.read_fd = fd;

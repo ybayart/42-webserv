@@ -28,7 +28,7 @@ void	Handler::handleGet(Client &client)
 				createListing(client);
 			else if (client.res.status_code == NOTFOUND)
 				negotiate(client);
-			if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+			else if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
@@ -54,6 +54,8 @@ void	Handler::handleGet(Client &client)
 				client.res.headers["Content-Type"] = _helper.findType(client.req);
 			if (client.res.status_code == UNAUTHORIZED)
 				client.res.headers["WWW-Authenticate"] = "Basic";
+			else if (client.res.status_code == NOTALLOWED)
+				client.res.headers["Allow"] = client.conf["methods"];
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;
@@ -90,6 +92,8 @@ void	Handler::handleHead(Client &client)
 			}
 			else if (client.res.status_code == UNAUTHORIZED)
 				client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
+			else if (client.res.status_code == NOTALLOWED)
+				client.res.headers["Allow"] = client.conf["methods"];
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
@@ -129,6 +133,9 @@ void	Handler::handlePost(Client &client)
 		case Client::HEADERS:
 			if (client.res.status_code == UNAUTHORIZED)
 				client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
+			else if (client.res.status_code == NOTALLOWED)
+				client.res.headers["Allow"] = client.conf["methods"];
+
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.headers.find("Content-Type") == client.res.headers.end() && client.read_fd != -1)
@@ -170,8 +177,9 @@ void	Handler::handlePut(Client &client)
 					client.res.body = "Ressource created\n";
 					client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
 				}
-
 			}
+			if (client.res.status_code == NOTALLOWED)
+				client.res.headers["Allow"] = client.conf["methods"];
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:
