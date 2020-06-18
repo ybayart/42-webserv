@@ -25,8 +25,7 @@ class Config
 		static void	exit(int sig);
 
 		int			parse(char *file, std::vector<Server> &servers);
-		void		init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
-		void		select(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet);
+		void		init(fd_set *rSet, fd_set *wSet, fd_set *readSet, fd_set *writeSet, struct timeval *timeout);
 		int			getMaxFd(std::vector<Server> &Servers);
 		int			getOpenFd(std::vector<Server> &servers);
 

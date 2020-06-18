@@ -18,7 +18,8 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 Client::~Client()
 {
 	free(rBuf);
-	close(fd);
+	if (fd != -1)
+		close(fd);
 	FD_CLR(fd, rSet);
 	FD_CLR(fd, wSet);
 	if (read_fd != -1)
@@ -80,7 +81,7 @@ void	Client::setFileToWrite(int fd, bool state)
 void	Client::readFile()
 {
 	char	buffer[BUFFER_SIZE + 1];
-	int		ret;
+	int		ret = 0;
 
 	if (cgi_pid != -1)
 	{
@@ -105,7 +106,7 @@ void	Client::readFile()
 
 void	Client::writeFile()
 {
-	int ret;
+	int ret = 0;
 
 	ret = write(write_fd, req.body.c_str(), req.body.size());
 	if (cgi_pid != -1)
@@ -128,15 +129,14 @@ void	Client::setToStandBy()
 	g_logger.log(req.method + " from " + ip + ":" + std::to_string(port) + " answered", MED);
 	status = STANDBY;
 	setReadState(true);
-	close(read_fd);
+	if (read_fd != -1)
+		close(read_fd);
 	read_fd = -1;
-	close(write_fd);
+	if (read_fd != -1)
+		close(write_fd);
 	write_fd = -1;
 	memset(rBuf, 0, BUFFER_SIZE + 1);
 	conf.clear();
-	req.body.clear();
-	res.body.clear();
-	res.status_code.clear();
-	res.headers.clear();
-	req.headers.clear();
+	req.clear();
+	res.clear();
 }

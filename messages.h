@@ -12,6 +12,15 @@ struct Request
 	std::string							version;
 	std::map<std::string, std::string> 	headers;
 	std::string							body;
+
+	void	clear()
+	{
+		method.clear();
+		uri.clear();
+		version.clear();
+		headers.clear();
+		body.clear();
+	}
 };
 
 struct Response
@@ -20,6 +29,14 @@ struct Response
 	std::string							status_code;
 	std::map<std::string, std::string> 	headers;
 	std::string							body;
+
+	void	clear()
+	{
+		version.clear();
+		status_code.clear();
+		headers.clear();
+		body.clear();
+	}
 };
 
 #endif

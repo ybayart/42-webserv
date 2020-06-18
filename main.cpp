@@ -3,7 +3,7 @@
 #include "Logger.hpp"
 
 std::vector<Server>		g_servers;
-Logger					g_logger(1, "console", HIGH);
+Logger					g_logger(1, "console", LOW);
 
 int		ret_error(std::string error)
 {
@@ -24,20 +24,10 @@ int 	main(int ac, char **av)
 
 	if (ac != 2)
 		return (ret_error("Usage: ./webserv config-file"));
-	else
-		if (!config.parse(av[1], g_servers))
-			return (ret_error("Error: wrong syntax in config file"));
+	else if (!config.parse(av[1], g_servers))
+		return (ret_error("Error: wrong syntax in config file"));
 
-	signal(SIGINT, Config::exit);
-
-	FD_ZERO(&rSet);
-	FD_ZERO(&wSet);
-	FD_ZERO(&readSet);
-	FD_ZERO(&writeSet);
-	timeout.tv_sec = 1;
-	timeout.tv_usec = 0;
-	for (std::vector<Server>::iterator it(g_servers.begin()); it != g_servers.end(); ++it)
-		it->init(&readSet, &writeSet, &rSet, &wSet);
+	config.init(&rSet, &wSet, &readSet, &writeSet, &timeout);
 
 	while (1)
 	{

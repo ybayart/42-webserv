@@ -11,6 +11,11 @@ Server::~Server()
 	{
 		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
 			delete *it;
+		while (!_tmp_clients.empty())
+		{
+			close(_tmp_clients.front());
+			_tmp_clients.pop();
+		}
 		_clients.clear();
 		close(_fd);
 		FD_CLR(_fd, _rSet);
@@ -52,6 +57,7 @@ int		Server::getOpenFd()
 		if (client->write_fd != -1)
 			nb += 1;
 	}
+	nb += _tmp_clients.size();
 	return (nb);
 }
 
@@ -86,7 +92,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     }
 	_info.sin_family = AF_INET;
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-    listen(_fd, 1000);
+    listen(_fd, 256);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
@@ -95,7 +101,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 
 void	Server::refuseConnection()
 {
-	int 				fd;
+	int 				fd = -1;
 	struct sockaddr_in	info;
 	socklen_t			len;
 
@@ -106,37 +112,42 @@ void	Server::refuseConnection()
 		std::cerr << "error accept(): " << strerror(errno) << std::endl;
 		return ;
 	}
-	_tmp_clients.push(fd);
-	FD_SET(fd, _wSet);
+	if (_tmp_clients.size() < 10)
+	{
+		_tmp_clients.push(fd);
+		FD_SET(fd, _wSet);
+	}
+	else
+		close(fd);
 }
 
 void	Server::acceptConnection()
 {
-	int 				fd;
+	int 				fd = -1;
 	struct sockaddr_in	info;
 	socklen_t			len;
-	Client				*newOne;
+	Client				*newOne = NULL;
 
 	memset(&info, 0, sizeof(info));
 	errno = 0;
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd == -1)
 	{
-		// std::cerr << "error accept(): " << strerror(errno) << "\n";
+		std::cerr << "error accept(): " << strerror(errno) << "\n";
 		return ;
 	}
 	if (fd > _maxFd)
 		_maxFd = fd;
 	newOne = new Client(fd, _rSet, _wSet, info);
 	_clients.push_back(newOne);
-	g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
+	g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 }
 
 int		Server::readRequest(std::vector<Client*>::iterator it)
 {
 	int 		bytes;
 	int			ret;
-	Client		*client;
+	Client		*client = NULL;
 	std::string	log;
 
 	client = *it;
@@ -164,7 +175,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	{
 		delete client;
 		_clients.erase(it);
-		g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
+		g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
 }
@@ -174,11 +185,9 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 	unsigned long	bytes;
 	std::string		tmp;
 	std::string		log;
-	Client			*client;
+	Client			*client = NULL;
 
 	client = *it;
-	if (client->status != Client::STANDBY && client->status != Client::DONE)
-		_handler.dispatcher(*client);
 	switch (client->status)
 	{
 		case Client::RESPONSE:
@@ -202,25 +211,28 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 		case Client::DONE:
 			delete client;
 			_clients.erase(it);
-			g_logger.log("[" + std::to_string(_port) + "] " + "clients number: " + std::to_string(_clients.size()), LOW);
+			g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 			return (0);
+		default:
+			_handler.dispatcher(*client);
 	}
 	return (1);
 }
 
 void	Server::send503(int fd)
 {
-	std::string		response;
+	Response		response;
+	std::string		str;
 
-	response = UNAVAILABLE;
-	response += "\r\n";
-	response += "Retry-After: ";
-	response += RETRY;
-	response += "\r\n";
-	response += "Server: webserv\r\n";
-	response += "\r\n";
-	response += UNAVAILABLE;
-	write(fd, response.c_str(), response.size());
+	response.version = "HTTP/1.1";
+	response.status_code = UNAVAILABLE;
+	response.headers["Retry-After"] = RETRY;
+	response.headers["Date"] = _handler._helper.getDate();
+	response.headers["Server"] = "webserv";
+	response.body = UNAVAILABLE;
+	response.headers["Content-Length"] = std::to_string(response.body.size());
+	str = _handler.createResponse(response);
+	write(fd, str.c_str(), str.size());
 	close(fd);
 	FD_CLR(fd, _wSet);
 	_tmp_clients.pop();

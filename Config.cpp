@@ -21,6 +21,19 @@ void			Config::exit(int sig)
 	::exit(0);
 }
 
+void			Config::init(fd_set *rSet, fd_set *wSet, fd_set *readSet, fd_set *writeSet, struct timeval *timeout)
+{
+	signal(SIGINT, exit);
+	FD_ZERO(rSet);
+	FD_ZERO(wSet);
+	FD_ZERO(readSet);
+	FD_ZERO(writeSet);
+	timeout->tv_sec = 1;
+	timeout->tv_usec = 0;
+	for (std::vector<Server>::iterator it(g_servers.begin()); it != g_servers.end(); ++it)
+		it->init(readSet, writeSet, rSet, wSet);
+}
+
 std::string		Config::readFile(char *file)
 {
 	int 				fd;

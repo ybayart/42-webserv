@@ -26,9 +26,9 @@ void	Handler::handleGet(Client &client)
 			fstat(client.read_fd, &file_info);
 			if (S_ISDIR(file_info.st_mode) && client.conf["listing"] == "on")
 				createListing(client);
-			else if (client.res.status_code == NOTFOUND)
+			if (client.res.status_code == NOTFOUND)
 				negotiate(client);
-			else if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+			if (((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
 			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos))
 			&& client.res.status_code == OK)
 			{
@@ -64,7 +64,7 @@ void	Handler::handleGet(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				createResponse(client);
+				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}
 			break;
@@ -97,7 +97,7 @@ void	Handler::handleHead(Client &client)
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
-			createResponse(client);
+			client.response = createResponse(client.res);
 			client.status = Client::RESPONSE;
 			break ;
 	}
@@ -147,7 +147,7 @@ void	Handler::handlePost(Client &client)
 			{
 				if (client.res.headers["Content-Length"][0] == '\0')
 					client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				createResponse(client);
+				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -185,7 +185,7 @@ void	Handler::handlePut(Client &client)
 		case Client::BODY:
 			if (client.write_fd == -1)
 			{
-				createResponse(client);
+				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -212,7 +212,7 @@ void	Handler::handleBadRequest(Client &client)
 		case Client::BODY:
 			if (client.read_fd == -1)
 			{
-				createResponse(client);
+				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}
 			break ;

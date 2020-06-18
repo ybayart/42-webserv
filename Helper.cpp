@@ -62,7 +62,8 @@ std::string		Helper::getLastModified(std::string path)
 	struct tm	*tm;
 	struct stat	file_info;
 
-	lstat(path.c_str(), &file_info);
+	if (lstat(path.c_str(), &file_info) == -1)
+		return ("");
 	tm = localtime(&file_info.st_mtime);
 	ret = strftime(buf, BUFFER_SIZE, "%a, %d %b %Y %T %Z", tm);
 	buf[ret] = '\0';

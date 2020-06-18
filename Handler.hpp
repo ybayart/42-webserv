@@ -25,6 +25,7 @@ class Handler
 		void			parseRequest(Client &client, std::vector<config> &conf);
 		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
+		std::string		createResponse(Response &res);
 
 	private:
 		void			handleGet(Client &client);
@@ -42,7 +43,6 @@ class Handler
 		void			dechunkBody(Client &client);
 		void			execCGI(Client &client);
 		void			parseCGIResult(Client &client);
-		void			createResponse(Client &client);
 
 };
 
