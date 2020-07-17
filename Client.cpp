@@ -12,7 +12,7 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 	chunk.len = 0;
 	chunk.done = false;
 	chunk.found = false;
-	g_logger.log("new connection from " + ip + std::to_string(port), LOW);
+	g_logger.log("new connection from " + ip + ":" + std::to_string(port), LOW);
 }
 
 Client::~Client()

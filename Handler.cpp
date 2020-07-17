@@ -70,8 +70,7 @@ void			Handler::parseBody(Client &client)
 {
 	if (client.req.headers.find("Content-Length") != client.req.headers.end())
 		getBody(client);
-	else if (client.req.headers.find("Transfer-Encoding") != client.req.headers.end()
-	&& client.req.headers["Transfer-Encoding"] == "chunked")
+	else if (client.req.headers["Transfer-Encoding"] == "chunked")
 		dechunkBody(client);
 	else
 	{

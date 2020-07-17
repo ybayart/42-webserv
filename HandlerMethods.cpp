@@ -91,7 +91,7 @@ void	Handler::handleHead(Client &client)
 				client.res.headers["Content-Type"] = _helper.findType(client.req);
 			}
 			else if (client.res.status_code == UNAUTHORIZED)
-				client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
+				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
 			client.res.headers["Date"] = _helper.getDate();
@@ -132,10 +132,9 @@ void	Handler::handlePost(Client &client)
 			break ;
 		case Client::HEADERS:
 			if (client.res.status_code == UNAUTHORIZED)
-				client.res.headers["WWW-Authenticate"] = "Basic realm=\"webserv\"";
+				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
-
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.headers.find("Content-Type") == client.res.headers.end() && client.read_fd != -1)
