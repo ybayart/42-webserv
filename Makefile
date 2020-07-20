@@ -1,44 +1,142 @@
-DIR_O = objs
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    Makefile                                           :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: lmartin <lmartin@student.42.fr>            +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2020/06/30 21:31:46 by lmartin           #+#    #+#              #
+#    Updated: 2020/07/20 22:02:18 by lmartin          ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+#
+## PIMPED MAKEFILE ##
 
-SRCS = Server.cpp \
-	Client.cpp \
-	Handler.cpp \
-	HandlerMethods.cpp \
-	Helper.cpp \
-	HelperStatusCode.cpp \
-	Config.cpp \
-	Logger.cpp \
-	main.cpp
+# COLORS #
 
-OBJS = $(addprefix $(DIR_O)/,$(SRCS:.cpp=.o))
+# This is a minimal set of ANSI/VT100 color codes
+_END		=	\x1b[0m
+_BOLD		=	\x1b[1m
+_UNDER		=	\x1b[4m
+_REV		=	\x1b[7m
 
-NAME = webserv
+# Colors
+_GREY		=	\x1b[30m
+_RED		=	\x1b[31m
+_GREEN		=	\x1b[32m
+_YELLOW		=	\x1b[33m
+_BLUE		=	\x1b[34m
+_PURPLE		=	\x1b[35m
+_CYAN		=	\x1b[36m
+_WHITE		=	\x1b[37m
 
-CONFIG = webserv.conf
+# Inverted, i.e. colored backgrounds
+_IGREY		=	\x1b[40m
+_IRED		=	\x1b[41m
+_IGREEN		=	\x1b[42m
+_IYELLOW	=	\x1b[43m
+_IBLUE		=	\x1b[44m
+_IPURPLE	=	\x1b[45m
+_ICYAN		=	\x1b[46m
+_IWHITE		=	\x1b[47m
 
-CC = clang++
+# **************************************************************************** #
 
-CFLAGS = -Wall -Wextra -Werror
+## VARIABLES ##
 
-all: $(NAME)
+# COMPILATION #
 
-$(DIR_O)/%.o: %.cpp
-	mkdir -p objs
-	$(CC) $(CFLAGS) -o $@ -c $<
+CC			=	clang++
 
-$(NAME): $(OBJS)
-	$(CC) $(CFLAGS) $^ -o $@
+CC_FLAGS	=	-Wall -Wextra -Werror
 
-test:
-	$(CC) $(SRCS) -o $(NAME)
-	./$(NAME) $(CONFIG)
+
+# DELETE #
+
+RM			=	rm -rf
+
+
+# DIRECTORIES #
+
+DIR_HEADERS =	./includes/
+
+DIR_SRCS	=	./srcs/
+
+DIR_OBJS	=	./compiled_srcs/
+
+
+# FILES #
+
+SRC			=	Client.cpp \
+				Config.cpp \
+				Handler.cpp \
+				HandlerMethods.cpp \
+				Helper.cpp \
+				HelperStatusCode.cpp \
+				Logger.cpp \
+				Server.cpp \
+				main.cpp
+
+
+SRCS		=	$(SRC)
+
+# COMPILED_SOURCES #
+
+OBJS 		=	$(SRCS:%.cpp=$(DIR_OBJS)%.o)
+
+NAME 		=	identify
+
+
+# **************************************************************************** #
+
+## RULES ##
+
+all:			$(NAME)
+
+# VARIABLES RULES #
+
+$(NAME):		$(OBJS)
+				@printf "\033[2K\r$(_GREEN) All files compiled into '$(DIR_OBJS)'. $(_END)✅\n"
+				@$(CC) $(CC_FLAGS) -I $(DIR_HEADERS) $(OBJS) -o $(NAME)
+				@echo "$(_GREEN) Executable '$(NAME)' created. $(_END)✅"
+
+# COMPILED_SOURCES RULES #
+
+$(OBJS):		| $(DIR_OBJS)
+
+
+$(DIR_OBJS)%.o: $(DIR_SRCS)%.cpp
+				@$(CC) $(CC_FLAGS) -I $(DIR_HEADERS) -c $< -o $@
+				@printf "\033[2K\r $(_YELLOW)Compiling $< $(_END)⌛"
+
+$(DIR_OBJS):
+				@mkdir $(DIR_OBJS)
+
+
+# OBLIGATORY PART #
 
 clean:
-	rm -rf $(DIR_O)
+				@$(RM) $(DIR_OBJS)
+				@echo "$(_RED) '"$(DIR_OBJS)"' has been deleted. $(_END)🗑️"
 
-fclean: clean
-	rm -f $(NAME)
+fclean:			clean
+				@$(RM) $(NAME)
+				@echo "$(_RED) '"$(NAME)"' has been deleted. $(_END)🗑️"
 
-re: fclean all
+re:				fclean all
 
-.PHONY: clean all fclean re
+# NORME #
+
+norm:
+				norminette $(DIR_SRCS)
+				norminette $(DIR_HEADERS)
+
+# BONUS #
+
+bonus:			all
+
+re_bonus:		fclean bonus
+
+# PHONY #
+
+.PHONY:			all clean fclean re bonus re_bonus
