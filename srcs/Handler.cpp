@@ -20,14 +20,15 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	buffer = std::string(client.rBuf);
 	if (buffer[0] == '\r')
 		buffer.erase(buffer.begin());
-	if (buffer[0] == '\r')
+	if (buffer[0] == '\n')
 		buffer.erase(buffer.begin());
 	ft::getline(buffer, request.method, ' ');
 	ft::getline(buffer, request.uri, ' ');
 	ft::getline(buffer, request.version);
 	parseHeaders(buffer, request);
 	request.valid = checkSyntax(request);
-	getConf(client, request, conf);
+	if (request.uri != "*" || request.method != "OPTIONS")
+		getConf(client, request, conf);
 	if (request.valid)
 	{
 		if (client.conf["root"][0] != '\0')
@@ -289,9 +290,11 @@ bool			Handler::checkSyntax(const Request &req)
 		|| req.version.size() == 0)
 		return (false);
 	if (req.method != "GET" && req.method != "POST"
-		&& req.method != "HEAD" && req.method != "PUT")
+		&& req.method != "HEAD" && req.method != "PUT"
+		&& req.method != "CONNECT" && req.method != "TRACE"
+		&& req.method != "OPTIONS")
 		return (false);
-	if (req.uri[0] != '/')
+	if (req.method != "OPTIONS" && req.uri[0] != '/') //OPTIONS can have * as uri
 		return (false);
 	if (req.version != "HTTP/1.1\r" && req.version != "HTTP/1.1")
 		return (false);
