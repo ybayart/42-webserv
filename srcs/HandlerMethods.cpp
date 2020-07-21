@@ -10,6 +10,7 @@ void	Handler::dispatcher(Client &client)
 	map["PUT"] = &Handler::handlePut;
 	map["POST"] = &Handler::handlePost;
 	map["CONNECT"] = &Handler::handleConnect;
+	map["TRACE"] = &Handler::handleTrace;
 	map["BAD"] = &Handler::handleBadRequest;
 
 	(this->*map[client.req.method])(client);
@@ -198,10 +199,51 @@ void	Handler::handleConnect(Client &client)
 	{
 		case Client::CODE:
 			_helper.getStatusCode(client);
+			client.setFileToRead(client.read_fd, true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
-			client.response = createResponse(client.res);
-			client.status = Client::RESPONSE;
+			client.status = Client::BODY;
+			break ;
+		case Client::BODY:
+			if (client.read_fd == -1)
+			{
+				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
+				client.response = createResponse(client.res);
+				client.status = Client::RESPONSE;
+			}
+			break ;
+	}
+}
+
+void	Handler::handleTrace(Client &client)
+{
+	switch (client.status)
+	{
+		case Client::CODE:
+			_helper.getStatusCode(client);
+			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Server"] = "webserv";
+			if (client.res.status_code == OK)
+			{
+				client.res.headers["Content-Type"] = "message/http";
+				client.res.body = client.req.method + " " + client.req.uri + " " + client.req.version + "\r\n";
+				for (std::map<std::string, std::string>::iterator it(client.req.headers.begin());
+					it != client.req.headers.end(); ++it)
+				{
+					client.res.body += it->first + ": " + it->second + "\r\n";
+				}
+			}
+			else
+				client.setFileToRead(client.read_fd, true);
+			client.status = Client::BODY;	
+			break ;
+		case Client::BODY:
+			if (client.read_fd == -1)
+			{
+				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
+				client.response = createResponse(client.res);
+				client.status = Client::RESPONSE;
+			}
 			break ;
 	}
 }

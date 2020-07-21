@@ -36,6 +36,7 @@ class Helper
 		int				POSTStatus(Client &client);
 		int				PUTStatus(Client &client);
 		int				CONNECTStatus(Client &client);
+		int				TRACEStatus(Client &client);
 
 
 };

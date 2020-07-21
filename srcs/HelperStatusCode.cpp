@@ -11,6 +11,7 @@ int			Helper::getStatusCode(Client &client)
 	map["PUT"] = &Helper::PUTStatus;
 	map["POST"] = &Helper::POSTStatus;
 	map["CONNECT"] = &Helper::CONNECTStatus;
+	map["TRACE"] = &Helper::TRACEStatus;
 
 	ret = (this->*map[client.req.method])(client);
 	if (ret == 0)
@@ -129,5 +130,20 @@ int			Helper::CONNECTStatus(Client &client)
 {
 	client.res.version = "HTTP/1.1";
 	client.res.status_code = NOTIMPLEMENTED;
-	return (1);
+	return (0);
+}
+
+int			Helper::TRACEStatus(Client &client)
+{
+	client.res.version = "HTTP/1.1";
+	if (client.conf["methods"].find(client.req.method) == std::string::npos)
+	{
+		client.res.status_code = NOTALLOWED;
+		return (0);
+	}
+	else
+	{
+		client.res.status_code = OK;
+		return (1);
+	}
 }

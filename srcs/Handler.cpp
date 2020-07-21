@@ -290,7 +290,7 @@ bool			Handler::checkSyntax(const Request &req)
 		return (false);
 	if (req.method != "GET" && req.method != "POST"
 		&& req.method != "HEAD" && req.method != "PUT"
-		&& req.method != "CONNECT")
+		&& req.method != "CONNECT" && req.method != "TRACE")
 		return (false);
 	if (req.uri[0] != '/')
 		return (false);
