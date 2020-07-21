@@ -72,6 +72,8 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 		{
 			while (ft::isspace(line[6]))
 				line.erase(6, 1);
+			if (line[6] != '{')
+				throw(Config::InvalidConfigFileException());
 			if (!line.compare(0, 7, "server{"))
 			{
 				if (!getContent(buffer, context, line, tmp))
@@ -98,6 +100,8 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 					context.clear();
 				}
 			}
+			else
+				throw(Config::InvalidConfigFileException());
 		}
 	}
 	return (1);
@@ -157,11 +161,13 @@ int				Config::getContent(std::string &buffer, std::string &context, std::string
 			}
 			break ;
 		}
-		if (line.back() != ';' && line.back() != '{')
+		while (ft::isspace(line[0]))
+			line.erase(line.begin());
+		if (line.back() != ';' && line.back() != '{' && line.back() != '}')
 			return (0);
 		if (line.back() == '{')
 			getContent(buffer, context, line, config);
-		else
+		else if (line.back() != '}')
 		{
 			pos = 0;
 			while (line[pos])

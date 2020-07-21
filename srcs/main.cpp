@@ -24,8 +24,16 @@ int 	main(int ac, char **av)
 
 	if (ac != 2)
 		return (ret_error("Usage: ./webserv config-file"));
-	else if (!config.parse(av[1], g_servers))
-		return (ret_error("Error: wrong syntax in config file"));
+	try
+	{
+		if (!config.parse(av[1], g_servers))
+			return (ret_error("Error: wrong syntax in config file"));
+	}
+	catch (std::exception &e)
+	{
+		std::cerr << "Error: " << e.what() << std::endl;
+		return (1);
+	}
 
 	config.init(&rSet, &wSet, &readSet, &writeSet, &timeout);
 
