@@ -9,6 +9,7 @@ void	Handler::dispatcher(Client &client)
 	map["HEAD"] = &Handler::handleHead;
 	map["PUT"] = &Handler::handlePut;
 	map["POST"] = &Handler::handlePost;
+	map["CONNECT"] = &Handler::handleConnect;
 	map["BAD"] = &Handler::handleBadRequest;
 
 	(this->*map[client.req.method])(client);
@@ -187,6 +188,20 @@ void	Handler::handlePut(Client &client)
 				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}
+			break ;
+	}
+}
+
+void	Handler::handleConnect(Client &client)
+{
+	switch (client.status)
+	{
+		case Client::CODE:
+			_helper.getStatusCode(client);
+			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Server"] = "webserv";
+			client.response = createResponse(client.res);
+			client.status = Client::RESPONSE;
 			break ;
 	}
 }

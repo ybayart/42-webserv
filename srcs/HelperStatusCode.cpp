@@ -10,6 +10,7 @@ int			Helper::getStatusCode(Client &client)
 	map["HEAD"] = &Helper::GETStatus;
 	map["PUT"] = &Helper::PUTStatus;
 	map["POST"] = &Helper::POSTStatus;
+	map["CONNECT"] = &Helper::CONNECTStatus;
 
 	ret = (this->*map[client.req.method])(client);
 	if (ret == 0)
@@ -122,4 +123,11 @@ int			Helper::PUTStatus(Client &client)
 		}
 	}
 	return (0);
+}
+
+int			Helper::CONNECTStatus(Client &client)
+{
+	client.res.version = "HTTP/1.1";
+	client.res.status_code = NOTIMPLEMENTED;
+	return (1);
 }

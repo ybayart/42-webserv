@@ -20,7 +20,7 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	buffer = std::string(client.rBuf);
 	if (buffer[0] == '\r')
 		buffer.erase(buffer.begin());
-	if (buffer[0] == '\r')
+	if (buffer[0] == '\n')
 		buffer.erase(buffer.begin());
 	ft::getline(buffer, request.method, ' ');
 	ft::getline(buffer, request.uri, ' ');
@@ -289,7 +289,8 @@ bool			Handler::checkSyntax(const Request &req)
 		|| req.version.size() == 0)
 		return (false);
 	if (req.method != "GET" && req.method != "POST"
-		&& req.method != "HEAD" && req.method != "PUT")
+		&& req.method != "HEAD" && req.method != "PUT"
+		&& req.method != "CONNECT")
 		return (false);
 	if (req.uri[0] != '/')
 		return (false);
