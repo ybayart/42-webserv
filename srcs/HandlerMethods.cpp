@@ -11,6 +11,7 @@ void	Handler::dispatcher(Client &client)
 	map["POST"] = &Handler::handlePost;
 	map["CONNECT"] = &Handler::handleConnect;
 	map["TRACE"] = &Handler::handleTrace;
+	map["OPTIONS"] = &Handler::handleOptions;
 	map["BAD"] = &Handler::handleBadRequest;
 
 	(this->*map[client.req.method])(client);
@@ -248,6 +249,22 @@ void	Handler::handleTrace(Client &client)
 	}
 }
 
+void	Handler::handleOptions(Client &client)
+{
+	switch (client.status)
+	{
+		case Client::CODE:
+			_helper.getStatusCode(client);
+			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Server"] = "webserv";
+			if (client.req.uri != "*")
+				client.res.headers["Allow"] = client.conf["methods"];
+			client.response = createResponse(client.res);
+			client.status = Client::RESPONSE;
+			break ;
+	}
+}
+
 void	Handler::handleBadRequest(Client &client)
 {
 	struct stat		file_info;
@@ -262,12 +279,12 @@ void	Handler::handleBadRequest(Client &client)
 			client.setFileToRead(client.read_fd, true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
-			client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:
 			if (client.read_fd == -1)
 			{
+				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
 				client.response = createResponse(client.res);
 				client.status = Client::RESPONSE;
 			}

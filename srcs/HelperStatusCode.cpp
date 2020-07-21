@@ -12,6 +12,7 @@ int			Helper::getStatusCode(Client &client)
 	map["POST"] = &Helper::POSTStatus;
 	map["CONNECT"] = &Helper::CONNECTStatus;
 	map["TRACE"] = &Helper::TRACEStatus;
+	map["OPTIONS"] = &Helper::OPTIONSStatus;
 
 	ret = (this->*map[client.req.method])(client);
 	if (ret == 0)
@@ -146,4 +147,11 @@ int			Helper::TRACEStatus(Client &client)
 		client.res.status_code = OK;
 		return (1);
 	}
+}
+
+int			Helper::OPTIONSStatus(Client &client)
+{
+	client.res.version = "HTTP/1.1";
+	client.res.status_code = NOCONTENT;
+	return (1);
 }
