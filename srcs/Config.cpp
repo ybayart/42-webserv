@@ -54,6 +54,8 @@ std::string		Config::readFile(char *file)
 
 int				Config::parse(char *file, std::vector<Server> &servers)
 {
+	size_t					d;
+	size_t					nb_line;
 	std::string				context;
 	std::string				buffer;
 	std::string				line;
@@ -63,9 +65,12 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 	buffer = readFile(file);
 	if (buffer.empty())
 		return (0);
+	nb_line = 0;
 	while (!buffer.empty())
 	{
 		ft::getline(buffer, line);
+		nb_line++;
+
 		while (ft::isspace(line[0]))
 			line.erase(line.begin());
 		if (!line.compare(0, 6, "server"))
@@ -73,10 +78,15 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 			while (ft::isspace(line[6]))
 				line.erase(6, 1);
 			if (line[6] != '{')
-				throw(Config::InvalidConfigFileException());
+				throw(Config::InvalidConfigFileException(nb_line));
 			if (!line.compare(0, 7, "server{"))
 			{
-				if (!getContent(buffer, context, line, tmp))
+				d = 7;
+				while (ft::isspace(line[d]))
+					line.erase(7, 1);
+				if (line[d])
+					throw(Config::InvalidConfigFileException(nb_line));
+				if (!getContent(buffer, context, line, nb_line, tmp))
 					return (0);	
 				else
 				{
@@ -101,8 +111,10 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 				}
 			}
 			else
-				throw(Config::InvalidConfigFileException());
+				throw(Config::InvalidConfigFileException(nb_line));
 		}
+		else if (line[0])
+			throw(Config::InvalidConfigFileException(nb_line));
 	}
 	return (1);
 }
@@ -134,12 +146,13 @@ int				Config::getOpenFd(std::vector<Server> &servers)
 	return (nb);
 }
 
-int				Config::getContent(std::string &buffer, std::string &context, std::string prec, config &config)
+int				Config::getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config)
 {
 	std::string			line;
 	std::string			key;
 	std::string			value;
 	size_t				pos;
+	size_t				tmp;
 
 	prec.pop_back();
 	while (prec.back() == ' ' || prec.back() == '\t')
@@ -150,44 +163,55 @@ int				Config::getContent(std::string &buffer, std::string &context, std::string
 	while (line != "}" && !buffer.empty())
 	{
 		ft::getline(buffer, line);
+		nb_line++;
 		while (ft::isspace(line[0]))
 			line.erase(line.begin());
-		if (line == "}" && !buffer.empty())
-		{
-			if (line == "}")
-			{
-				context.pop_back();
-				context = context.substr(0, context.find_last_of('|') + 1);
-			}
-			break ;
-		}
-		while (ft::isspace(line[0]))
-			line.erase(line.begin());
-		if (line.back() != ';' && line.back() != '{' && line.back() != '}')
-			return (0);
-		if (line.back() == '{')
-			getContent(buffer, context, line, config);
-		else if (line.back() != '}')
+		if (line[0] != '}')
 		{
 			pos = 0;
-			while (line[pos])
+			while (line[pos] && line[pos] != ';' && line[pos] != '{')
 			{
 				while (line[pos] && !ft::isspace(line[pos]))
 					key += line[pos++];
 				while (ft::isspace(line[pos]))
 					pos++;
-				while (line[pos] && line[pos] != ';')
+				while (line[pos] && line[pos] != ';' && line[pos] != '{')
 					value += line[pos++];
-				if (line[pos])
-					pos++;
 			}
-			std::cout << key + " : " + value + " / c: " + context << std::endl;
-			std::pair<std::string, std::string>	tmp(key, value);
-			config[context].insert(tmp);
-			key.clear();
-			value.clear();
+			tmp = 0;
+			if (line[pos] != ';' && line[pos] != '{')
+				throw(Config::InvalidConfigFileException(nb_line));
+			else
+				tmp++;
+			while (ft::isspace(line[pos + tmp]))
+				tmp++;
+			if (line[pos + tmp])
+				throw(Config::InvalidConfigFileException(nb_line));
+			else if (line[pos] == '{')
+				getContent(buffer, context, line, nb_line, config);
+			else
+			{
+				//std::cout << key + " : " + value + " / c: " + context << std::endl;
+				std::pair<std::string, std::string>	tmp(key, value);
+				config[context].insert(tmp);
+				key.clear();
+				value.clear();
+			}
+
+		}
+		else if (line[0] == '}' && !buffer.empty())
+		{
+			pos = 0;
+			while (ft::isspace(line[++pos]))
+				line.erase(line.begin());
+			if (line[pos])
+				throw(Config::InvalidConfigFileException(nb_line));
+			context.pop_back();
+			context = context.substr(0, context.find_last_of('|') + 1);
 		}
 	}
+	if (line[0] != '}')
+		throw(Config::InvalidConfigFileException(nb_line));
 	return (1);
 }
 
@@ -199,11 +223,19 @@ int				Config::checkContent(config &tmp)
 	return (1);
 }
 
-Config::InvalidConfigFileException::InvalidConfigFileException(void) {}
+Config::InvalidConfigFileException::InvalidConfigFileException(void) {this->line = 0;}
+
+Config::InvalidConfigFileException::InvalidConfigFileException(size_t d) {this->line = d;}
 
 Config::InvalidConfigFileException::~InvalidConfigFileException(void) throw() {}
 
 const char					*Config::InvalidConfigFileException::what(void) const throw()
 {
+	std::string str;
+	if (this->line)
+	{
+		str = "line " + std::to_string(this->line) + ": Invalid Config File";
+		return (str.c_str());
+	}
 	return ("Invalid Config File");
 }

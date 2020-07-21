@@ -30,8 +30,13 @@ class Config
 
 	class InvalidConfigFileException: public std::exception
 	{
-		public:
+		private:
+			size_t						line;
+
 			InvalidConfigFileException(void);
+
+		public:
+			InvalidConfigFileException(size_t d);
 			virtual ~InvalidConfigFileException(void) throw();
 
 			virtual const char			*what(void) const throw();
@@ -39,7 +44,7 @@ class Config
 
 	private:
 		std::string	readFile(char *file);
-		int			getContent(std::string &buffer, std::string &context, std::string prec, config &config);
+		int			getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config);
 		int			checkContent(config &tmp);
 };
 

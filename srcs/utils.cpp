@@ -1,5 +1,6 @@
 #include <string>
 
+#include <iostream>
 namespace ft
 {
 
@@ -22,7 +23,15 @@ c == ' ')
 			buffer = buffer.substr(pos);
 		}
 		else
-			buffer = buffer.substr(buffer.size());
+		{
+			if (buffer[buffer.size() - 1] == '\n')
+				buffer = buffer.substr(buffer.size());
+			else
+			{
+				line = buffer;
+				buffer = buffer.substr(buffer.size());
+			}
+		}
 	}
 
 	void	getline(std::string &buffer, std::string &line, char delim)
@@ -36,6 +45,14 @@ c == ' ')
 			buffer = buffer.substr(pos);
 		}
 		else
-			buffer = buffer.substr(buffer.size());	
+		{
+			if (buffer[buffer.size() - 1] == delim)
+				buffer = buffer.substr(buffer.size());
+			else
+			{
+				line = buffer;
+				buffer = buffer.substr(buffer.size());
+			}
+		}
 	}
 }
