@@ -1,7 +1,6 @@
 #ifndef HANDLER_HPP
 #define HANDLER_HPP
 
-#include <sstream>
 #include <vector>
 #include <dirent.h>
 #include <sys/stat.h>
