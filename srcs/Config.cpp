@@ -60,7 +60,6 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 	Server					server;
 	config					tmp;
 
-	(void)servers;
 	buffer = readFile(file);
 	if (buffer.empty())
 		return (0);
@@ -167,22 +166,16 @@ int				Config::getContent(std::string &buffer, std::string &context, std::string
 			pos = 0;
 			while (line[pos])
 			{
-				while (line[pos] && line[pos] != ' ' && line[pos] != '\t')
-				{
-					key += line[pos];
-					++pos;
-				}
-				while (line[pos] == ' ' || line[pos] == '\t')
-					++pos;
+				while (line[pos] && !ft::isspace(line[pos]))
+					key += line[pos++];
+				while (ft::isspace(line[pos]))
+					pos++;
 				while (line[pos] && line[pos] != ';')
-				{
-					value += line[pos];
-					++pos;
-				}
+					value += line[pos++];
 				if (line[pos])
 					pos++;
 			}
-			//std::cout << key + " : " + value + " / c: " + context << std::endl;
+			std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
 			config[context].insert(tmp);
 			key.clear();
@@ -198,4 +191,13 @@ int				Config::checkContent(config &tmp)
 	if (tmp.find("server|") == tmp.end())
 		return (0);
 	return (1);
+}
+
+Config::InvalidConfigFileException::InvalidConfigFileException(void) {}
+
+Config::InvalidConfigFileException::~InvalidConfigFileException(void) throw() {}
+
+const char					*Config::InvalidConfigFileException::what(void) const throw()
+{
+	return ("Invalid Config File");
 }
