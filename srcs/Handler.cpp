@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "Handler.hpp"
 
 Handler::Handler()
@@ -12,19 +13,19 @@ Handler::~Handler()
 
 void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 {
-	std::stringstream	is;
 	Request				request;
 	std::string			tmp;
+	std::string			buffer;
 
-	is << client.rBuf;
-	if (is.peek() == '\r')
-		is.get();
-	if (is.peek() == '\n')
-		is.get();
-	std::getline(is, request.method, ' ');
-	std::getline(is, request.uri, ' ');
-	std::getline(is, request.version,  '\n');
-	parseHeaders(is, request);
+	buffer = std::string(client.rBuf);
+	if (buffer[0] == '\r')
+		buffer.erase(buffer.begin());
+	if (buffer[0] == '\r')
+		buffer.erase(buffer.begin());
+	ft::getline(buffer, request.method, ' ');
+	ft::getline(buffer, request.uri, ' ');
+	ft::getline(buffer, request.version);
+	parseHeaders(buffer, request);
 	request.valid = checkSyntax(request);
 	getConf(client, request, conf);
 	if (request.valid)
@@ -47,14 +48,14 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	strcpy(client.rBuf, tmp.c_str());
 }
 
-void			Handler::parseHeaders(std::stringstream &buf, Request &req)
+void			Handler::parseHeaders(std::string &buf, Request &req)
 {
 	size_t		pos;
 	std::string	line;
 
-	while (!buf.eof())
+	while (!buf.empty())
 	{
-		std::getline(buf, line);
+		ft::getline(buf, line);
 		if (line.size() < 1 || line[0] == '\n' || line[0] == '\r')
 			break ;
 		if (line.find(':') != std::string::npos)
