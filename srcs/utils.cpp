@@ -24,4 +24,18 @@ c == ' ')
 		else
 			buffer = buffer.substr(buffer.size());
 	}
+
+	void	getline(std::string &buffer, std::string &line, char delim)
+	{
+		size_t					pos;
+
+		pos = buffer.find(delim);
+		if (pos != std::string::npos)
+		{
+			line = std::string (buffer, 0, pos++);
+			buffer = buffer.substr(pos);
+		}
+		else
+			buffer = buffer.substr(buffer.size());	
+	}
 }
