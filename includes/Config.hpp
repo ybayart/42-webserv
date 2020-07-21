@@ -31,8 +31,7 @@ class Config
 
 	private:
 		std::string	readFile(char *file);
-		int			getContent(std::stringstream &is, std::string &context,
-					std::string prec, config &config);
+		int			getContent(std::string &buffer, std::string &context, std::string prec, config &config);
 		int			checkContent(config &tmp);
 };
 

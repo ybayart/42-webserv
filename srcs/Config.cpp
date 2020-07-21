@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "Config.hpp"
 
 extern	std::vector<Server> g_servers;
@@ -53,31 +54,29 @@ std::string		Config::readFile(char *file)
 
 int				Config::parse(char *file, std::vector<Server> &servers)
 {
-	std::string			context;
-	std::stringstream	is;
-	std::string			parsed;
-	std::string			line;
-	Server				server;
-	config				tmp;
+	std::string				context;
+	std::string				buffer;
+	std::string				line;
+	Server					server;
+	config					tmp;
 
-	parsed = readFile(file);
-
-	if (parsed == "")
+	(void)servers;
+	buffer = readFile(file);
+	if (buffer.empty())
 		return (0);
-	is << parsed;
-	while (!is.eof())
+	while (!buffer.empty())
 	{
-		std::getline(is, line);
-		while (line[0] == ' ' || line[0] == '\t')
+		ft::getline(buffer, line);
+		while (ft::isspace(line[0]))
 			line.erase(line.begin());
-		if (line == "server {" || line == "server\t{")
+		if (!line.compare(0, 6, "server"))
 		{
-			if (!getContent(is, context, line, tmp))
-				return (0);
-			else
+			while (ft::isspace(line[6]))
+				line.erase(6, 1);
+			if (!line.compare(0, 7, "server{"))
 			{
-				if (!checkContent(tmp))
-					return (0);
+				if (!getContent(buffer, context, line, tmp))
+					return (0);	
 				else
 				{
 					std::vector<Server>::iterator it(servers.begin());
@@ -132,7 +131,7 @@ int				Config::getOpenFd(std::vector<Server> &servers)
 	return (nb);
 }
 
-int				Config::getContent(std::stringstream &is, std::string &context, std::string prec, config &config)
+int				Config::getContent(std::string &buffer, std::string &context, std::string prec, config &config)
 {
 	std::string			line;
 	std::string			key;
@@ -143,14 +142,14 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 	while (prec.back() == ' ' || prec.back() == '\t')
 		prec.pop_back();
 	context += prec + "|";
-	while (line[0] == ' ' || line[0] == '\t')
+	while (ft::isspace(line[0]))
 		line.erase(line.begin());
-	while (line != "}" && !is.eof())
+	while (line != "}" && !buffer.empty())
 	{
-		std::getline(is, line);
-		while (line[0] == ' ' || line[0] == '\t')
+		ft::getline(buffer, line);
+		while (ft::isspace(line[0]))
 			line.erase(line.begin());
-		if (line == "}" || is.eof())
+		if (line == "}" && !buffer.empty())
 		{
 			if (line == "}")
 			{
@@ -162,7 +161,7 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 		if (line.back() != ';' && line.back() != '{')
 			return (0);
 		if (line.back() == '{')
-			getContent(is, context, line, config);
+			getContent(buffer, context, line, config);
 		else
 		{
 			pos = 0;
@@ -183,15 +182,13 @@ int				Config::getContent(std::stringstream &is, std::string &context, std::stri
 				if (line[pos])
 					pos++;
 			}
-			// std::cout << key + " : " + value + " / c: " + context << std::endl;
+			//std::cout << key + " : " + value + " / c: " + context << std::endl;
 			std::pair<std::string, std::string>	tmp(key, value);
 			config[context].insert(tmp);
 			key.clear();
 			value.clear();
 		}
 	}
-	if (line != "}")
-		return (0);
 	return (1);
 }
 

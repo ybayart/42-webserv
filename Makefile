@@ -6,7 +6,7 @@
 #    By: lmartin <lmartin@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/06/30 21:31:46 by lmartin           #+#    #+#              #
-#    Updated: 2020/07/20 22:02:18 by lmartin          ###   ########.fr        #
+#    Updated: 2020/07/21 02:28:37 by lmartin          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 #
@@ -75,7 +75,8 @@ SRC			=	Client.cpp \
 				HelperStatusCode.cpp \
 				Logger.cpp \
 				Server.cpp \
-				main.cpp
+				utils.cpp \
+				main.cpp 
 
 
 SRCS		=	$(SRC)
