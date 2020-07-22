@@ -122,10 +122,16 @@ void	Handler::handlePost(Client &client)
 			{
 				execCGI(client);
 				client.status = Client::CGI;
+				client.setFileToRead(true);
 			}
-			else 
+			else
+			{
+				if (client.res.status_code == OK || client.res.status_code == CREATED)
+					client.setFileToWrite(true);
+				else
+					client.setFileToRead(true);
 				client.status = Client::HEADERS;
-			client.setFileToRead(true);
+			}
 			break ;
 		case Client::CGI:
 			if (client.read_fd == -1)
@@ -141,12 +147,15 @@ void	Handler::handlePost(Client &client)
 				client.res.headers["Allow"] = client.conf["methods"];
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
-			if (client.res.headers.find("Content-Type") == client.res.headers.end() && client.read_fd != -1)
-				client.res.headers["Content-Type"] = _helper.findType(client.req);
+			if (client.res.status_code == CREATED)
+				client.res.body = "File created\n";
+			else if (client.res.status_code == OK && !((client.conf.find("CGI") != client.conf.end() && client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+			|| (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos)))
+				client.res.body = "File modified\n";
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:
-			if (client.read_fd == -1)
+			if (client.read_fd == -1 && client.write_fd == -1)
 			{
 				if (client.res.headers["Content-Length"][0] == '\0')
 					client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
@@ -183,6 +192,8 @@ void	Handler::handlePut(Client &client)
 			}
 			if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
+			else if (client.res.status_code == UNAUTHORIZED)
+				client.res.headers["WWW-Authenticate"] = "Basic";
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:
@@ -281,6 +292,10 @@ void	Handler::handleDelete(Client &client)
 				unlink(client.conf["path"].c_str());				
 				client.res.body = "File deleted\n";
 			}
+			else if (client.res.status_code == NOTALLOWED)
+				client.res.headers["Allow"] = client.conf["methods"];
+			else if (client.res.status_code == UNAUTHORIZED)
+				client.res.headers["WWW-Authenticate"] = "Basic";
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:

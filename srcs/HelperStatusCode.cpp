@@ -69,29 +69,42 @@ int			Helper::GETStatus(Client &client)
 int			Helper::POSTStatus(Client &client)
 {
 	std::string		credential;
+	int				fd;
 	struct stat		info;
-	int				save_err;
 
 	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
 	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
 	if (client.res.status_code == OK)
 	{
-		errno = 0;
 		if (client.conf.find("CGI") != client.conf.end()
-		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos
-		&& client.conf.find("exec") != client.conf.end())
-			client.read_fd = open(client.conf["exec"].c_str(), O_RDONLY);
+		&& client.req.uri.find(client.conf["CGI"]) != std::string::npos)
+		{
+			if (client.conf["exec"][0])
+				client.read_fd = open(client.conf["exec"].c_str(), O_RDONLY);
+			else
+				client.read_fd = open(client.conf["path"].c_str(), O_RDONLY);
+			fstat(client.read_fd, &info);
+			if (client.read_fd == -1 || S_ISDIR(info.st_mode))
+				client.res.status_code = INTERNALERROR;
+			else
+				return (1);
+		}
 		else
-			client.read_fd = open(client.conf["path"].c_str(), O_RDONLY);
-		save_err = errno;
-		fstat(client.read_fd, &info);
-		if ((client.read_fd == -1 && save_err == ENOENT) || S_ISDIR(info.st_mode))
-			client.res.status_code = NOTFOUND;
-		else if (client.read_fd == -1)
-			client.res.status_code = INTERNALERROR;
-		else
-			return (1);
+		{
+			errno = 0;
+			fd = open(client.conf["path"].c_str(), O_RDONLY);
+			if (fd == -1 && errno == ENOENT)
+				client.res.status_code = CREATED;
+			else if (fd != -1)
+				client.res.status_code = OK;
+			close(fd);
+			client.write_fd = open(client.conf["path"].c_str(), O_WRONLY | O_APPEND | O_CREAT, 0666);
+			if (client.write_fd == -1)
+				client.res.status_code = INTERNALERROR;
+			else
+				return (1);
+		}
 	}
 	return (0);
 }
