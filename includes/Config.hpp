@@ -23,7 +23,7 @@ class Config
 
 		static void	exit(int sig);
 
-		int			parse(char *file, std::vector<Server> &servers);
+		void		parse(char *file, std::vector<Server> &servers);
 		void		init(fd_set *rSet, fd_set *wSet, fd_set *readSet, fd_set *writeSet, struct timeval *timeout);
 		int			getMaxFd(std::vector<Server> &Servers);
 		int			getOpenFd(std::vector<Server> &servers);
@@ -44,7 +44,7 @@ class Config
 
 	private:
 		std::string	readFile(char *file);
-		int			getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config);
+		void		getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config);
 		int			checkContent(config &tmp);
 };
 

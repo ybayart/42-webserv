@@ -7,7 +7,7 @@ Logger					g_logger(1, "console", MED);
 
 int		ret_error(std::string error)
 {
-	std::cout << error << std::endl;
+	std::cerr << error << std::endl;
 	return (1);
 }
 
@@ -26,8 +26,8 @@ int 	main(int ac, char **av)
 		return (ret_error("Usage: ./webserv config-file"));
 	try
 	{
-		if (!config.parse(av[1], g_servers))
-			return (ret_error("Error: wrong syntax in config file"));
+		config.parse(av[1], g_servers);
+		config.init(&rSet, &wSet, &readSet, &writeSet, &timeout); // missing exceptions in Server::init
 	}
 	catch (std::exception &e)
 	{
@@ -35,7 +35,6 @@ int 	main(int ac, char **av)
 		return (1);
 	}
 
-	config.init(&rSet, &wSet, &readSet, &writeSet, &timeout);
 
 	while (1)
 	{

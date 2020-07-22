@@ -52,7 +52,7 @@ std::string		Config::readFile(char *file)
 	return (parsed);
 }
 
-int				Config::parse(char *file, std::vector<Server> &servers)
+void			Config::parse(char *file, std::vector<Server> &servers)
 {
 	size_t					d;
 	size_t					nb_line;
@@ -63,9 +63,9 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 	config					tmp;
 
 	buffer = readFile(file);
-	if (buffer.empty())
-		return (0);
 	nb_line = 0;
+	if (buffer.empty())
+		throw(Config::InvalidConfigFileException(nb_line));
 	while (!buffer.empty())
 	{
 		ft::getline(buffer, line);
@@ -86,29 +86,25 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 					line.erase(7, 1);
 				if (line[d])
 					throw(Config::InvalidConfigFileException(nb_line));
-				if (!getContent(buffer, context, line, nb_line, tmp))
-					return (0);	
-				else
+				getContent(buffer, context, line, nb_line, tmp); //may throw exception
+				std::vector<Server>::iterator it(servers.begin());
+				while (it != servers.end())
 				{
-					std::vector<Server>::iterator it(servers.begin());
-					while (it != servers.end())
+					if (tmp["server|"]["listen"] == it->_conf[0]["server|"]["listen"])
 					{
-						if (tmp["server|"]["listen"] == it->_conf[0]["server|"]["listen"])
-						{
-							it->_conf.push_back(tmp);
-							break ;
-						}
-						++it;
+						it->_conf.push_back(tmp);
+						break ;
 					}
-					if (it == servers.end())
-					{
-						server._conf.push_back(tmp);
-						servers.push_back(server);
-					}
-					server._conf.clear();
-					tmp.clear();
-					context.clear();
+					++it;
 				}
+				if (it == servers.end())
+				{
+					server._conf.push_back(tmp);
+					servers.push_back(server);
+				}
+				server._conf.clear();
+				tmp.clear();
+				context.clear();
 			}
 			else
 				throw(Config::InvalidConfigFileException(nb_line));
@@ -116,7 +112,6 @@ int				Config::parse(char *file, std::vector<Server> &servers)
 		else if (line[0])
 			throw(Config::InvalidConfigFileException(nb_line));
 	}
-	return (1);
 }
 
 int				Config::getMaxFd(std::vector<Server> &servers)
@@ -142,11 +137,10 @@ int				Config::getOpenFd(std::vector<Server> &servers)
 		nb += 1;
 		nb += it->getOpenFd();
 	}
-	// std::cout << "nb: " << nb << "\n";
 	return (nb);
 }
 
-int				Config::getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config)
+void			Config::getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config)
 {
 	std::string			line;
 	std::string			key;
@@ -191,7 +185,6 @@ int				Config::getContent(std::string &buffer, std::string &context, std::string
 				getContent(buffer, context, line, nb_line, config);
 			else
 			{
-				//std::cout << key + " : " + value + " / c: " + context << std::endl;
 				std::pair<std::string, std::string>	tmp(key, value);
 				config[context].insert(tmp);
 				key.clear();
@@ -212,7 +205,6 @@ int				Config::getContent(std::string &buffer, std::string &context, std::string
 	}
 	if (line[0] != '}')
 		throw(Config::InvalidConfigFileException(nb_line));
-	return (1);
 }
 
 //TO COMPLETE
