@@ -1,6 +1,6 @@
 #include <string>
-
 #include <iostream>
+
 namespace ft
 {
 
@@ -54,5 +54,28 @@ c == ' ')
 				buffer = buffer.substr(buffer.size());
 			}
 		}
+	}
+
+	int		getpower(int nb, int power)
+	{
+		if (power < 0)
+			return (0);
+		if (power == 0)
+			return (1);
+		return (nb * getpower(nb, power - 1));
+	}
+
+	void	freeAll(char **args, char **env)
+	{
+		free(args[0]);
+		free(args[1]);
+		free(args);
+		int i = 0;
+		while (env[i])
+		{
+			free(env[i]);
+			++i;
+		}
+		free(env);
 	}
 }

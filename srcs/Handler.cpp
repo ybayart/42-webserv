@@ -345,7 +345,7 @@ void			Handler::execCGI(Client &client)
 		client.read_fd = open(TMP_PATH, O_RDONLY);
 		client.setFileToWrite(true);
 	}
-	_helper.freeAll(args, env);
+	ft::freeAll(args, env);
 }
 
 void		Handler::parseCGIResult(Client &client)

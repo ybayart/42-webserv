@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "Helper.hpp"
 
 static const int B64index[256] = { 0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -78,9 +79,7 @@ int				Helper::findLen(Client &client)
 
 	to_convert = client.rBuf;
 	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
-	// std::cout << to_convert << ";" << std::endl;
 	len = fromHexa(to_convert.c_str());
-	// std::cout << "l: " << len << " / " << client.port << std::endl;
 	tmp = client.rBuf;
 	tmp = tmp.substr(tmp.find("\r\n") + 2);
 	strcpy(client.rBuf, tmp.c_str());
@@ -107,15 +106,6 @@ void			Helper::fillBody(Client &client)
 		client.chunk.len -= tmp.size();
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
 	}
-}			
-
-int				Helper::ft_power(int nb, int power)
-{
-	if (power < 0)
-		return (0);
-	if (power == 0)
-		return (1);
-	return (nb * ft_power(nb, power - 1));
 }
 
 int				Helper::fromHexa(const char *nb)
@@ -152,7 +142,7 @@ int				Helper::fromHexa(const char *nb)
 				j++;
 			}
 		}
-		result += index * ft_power(16, (strlen(nb) - 1) - i);
+		result += index * ft::getpower(16, (strlen(nb) - 1) - i);
 		i++;
 	}
 	return (result);
@@ -321,20 +311,6 @@ char			**Helper::setEnv(Client &client)
 	}
 	env[i] = NULL;
 	return (env);
-}
-
-void			Helper::freeAll(char **args, char **env)
-{
-	free(args[0]);
-	free(args[1]);
-	free(args);
-	int i = 0;
-	while (env[i])
-	{
-		free(env[i]);
-		++i;
-	}
-	free(env);
 }
 
 void			Helper::assignMIME()
