@@ -38,6 +38,7 @@ class Helper
 		int				CONNECTStatus(Client &client);
 		int				TRACEStatus(Client &client);
 		int				OPTIONSStatus(Client &client);
+		int				DELETEStatus(Client &client);
 
 
 };

@@ -75,8 +75,8 @@ class Client
 
 		void	setReadState(bool state);
 		void	setWriteState(bool state);
-		void	setFileToRead(int fd, bool state);
-		void	setFileToWrite(int fd, bool state);
+		void	setFileToRead(bool state);
+		void	setFileToWrite(bool state);
 		void	setToStandBy();
 };
 

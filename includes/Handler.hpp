@@ -34,6 +34,7 @@ class Handler
 		void			handleConnect(Client &client);
 		void			handleTrace(Client &client);
 		void			handleOptions(Client &client);
+		void			handleDelete(Client &client);
 		void			handleBadRequest(Client &client);
 
 		void			getConf(Client &client, Request &req, std::vector<config> &conf);

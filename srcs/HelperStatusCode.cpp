@@ -4,8 +4,8 @@ int			Helper::getStatusCode(Client &client)
 {
 	typedef int	(Helper::*ptr)(Client &client);
 	std::map<std::string, ptr> 	map;
+	std::string					credential;
 	int							ret;
-
 	map["GET"] = &Helper::GETStatus;
 	map["HEAD"] = &Helper::GETStatus;
 	map["PUT"] = &Helper::PUTStatus;
@@ -13,8 +13,30 @@ int			Helper::getStatusCode(Client &client)
 	map["CONNECT"] = &Helper::CONNECTStatus;
 	map["TRACE"] = &Helper::TRACEStatus;
 	map["OPTIONS"] = &Helper::OPTIONSStatus;
+	map["DELETE"] = &Helper::DELETEStatus;
+
+	if (client.req.method != "CONNECT"
+		&& client.req.method != "TRACE"
+		&& client.req.method != "OPTIONS")
+	{
+		client.res.version = "HTTP/1.1";
+		client.res.status_code = OK;
+		if (client.conf["methods"].find(client.req.method) == std::string::npos)
+			client.res.status_code = NOTALLOWED;
+		else if (client.conf.find("auth") != client.conf.end())
+		{
+			client.res.status_code = UNAUTHORIZED;
+			if (client.req.headers.find("Authorization") != client.req.headers.end())
+			{
+				credential = decode64(client.req.headers["Authorization"].c_str());
+				if (credential == client.conf["auth"])
+					client.res.status_code = OK;
+			}
+		}
+	}
 
 	ret = (this->*map[client.req.method])(client);
+
 	if (ret == 0)
 		getErrorPage(client);
 	return (ret);
@@ -25,20 +47,6 @@ int			Helper::GETStatus(Client &client)
 	std::string		credential;
 	struct stat		info;
 
-	client.res.version = "HTTP/1.1";
-	client.res.status_code = OK;
-	if (client.conf["methods"].find(client.req.method) == std::string::npos)
-		client.res.status_code = NOTALLOWED;
-	else if (client.conf.find("auth") != client.conf.end())
-	{
-		client.res.status_code = UNAUTHORIZED;
-		if (client.req.headers.find("Authorization") != client.req.headers.end())
-		{
-			credential = decode64(client.req.headers["Authorization"].c_str());
-			if (credential == client.conf["auth"])
-				client.res.status_code = OK;
-		}
-	}
 	if (client.res.status_code == OK)
 	{
 		client.read_fd = open(client.conf["path"].c_str(), O_RDONLY);
@@ -60,20 +68,6 @@ int			Helper::POSTStatus(Client &client)
 	std::string		credential;
 	struct stat		info;
 
-	client.res.version = "HTTP/1.1";
-	client.res.status_code = OK;
-	if (client.conf["methods"].find(client.req.method) == std::string::npos)
-		client.res.status_code = NOTALLOWED;
-	else if (client.conf.find("auth") != client.conf.end())
-	{
-		client.res.status_code = UNAUTHORIZED;
-		if (client.req.headers.find("Authorization") != client.req.headers.end())
-		{
-			credential = decode64(client.req.headers["Authorization"].c_str());
-			if (credential == client.conf["auth"])
-				client.res.status_code = OK;
-		}
-	}
 	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
 	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
@@ -96,29 +90,26 @@ int			Helper::POSTStatus(Client &client)
 
 int			Helper::PUTStatus(Client &client)
 {
-	int 		ret;
+	int 		fd;
 	struct stat	info;
 
-	client.res.version = "HTTP/1.1";
-	if (client.conf["methods"].find(client.req.method) == std::string::npos)
-		client.res.status_code = NOTALLOWED;
-	else if (client.conf.find("max_body") != client.conf.end()
+	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
 	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
 	else
 	{
-		ret = open(client.conf["path"].c_str(), O_RDONLY);
-		fstat(ret, &info);
+		fd = open(client.conf["path"].c_str(), O_RDONLY);
+		fstat(fd, &info);
 		if (S_ISDIR(info.st_mode))
 			client.res.status_code = NOTFOUND;
 		else
 		{ 
-			if (ret == -1)
+			if (fd == -1)
 				client.res.status_code = CREATED;
 			else
 			{
 				client.res.status_code = NOCONTENT;
-				close(ret);
+				close(fd);
 			}
 			client.write_fd = open(client.conf["path"].c_str(), O_WRONLY | O_CREAT, 0666);
 			return (1);
@@ -154,4 +145,21 @@ int			Helper::OPTIONSStatus(Client &client)
 	client.res.version = "HTTP/1.1";
 	client.res.status_code = NOCONTENT;
 	return (1);
+}
+
+int			Helper::DELETEStatus(Client &client)
+{
+	int 		fd;
+	struct stat	info;
+
+	if (client.res.status_code == OK)
+	{
+		fd = open(client.conf["path"].c_str(), O_RDONLY);
+		fstat(fd, &info);
+		if (fd == -1 || S_ISDIR(info.st_mode))
+			client.res.status_code = NOTFOUND;
+		else
+			return (1);
+	}
+	return (0);
 }

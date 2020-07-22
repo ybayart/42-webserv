@@ -56,25 +56,25 @@ void	Client::setWriteState(bool state)
 		FD_CLR(fd, wSet);
 }
 
-void	Client::setFileToRead(int fd, bool state)
+void	Client::setFileToRead(bool state)
 {
-	if (fd != -1)
+	if (read_fd != -1)
 	{
 		if (state)
-			FD_SET(fd, rSet);
+			FD_SET(read_fd, rSet);
 		else
-			FD_CLR(fd, rSet);
+			FD_CLR(read_fd, rSet);
 	}
 }
 
-void	Client::setFileToWrite(int fd, bool state)
+void	Client::setFileToWrite(bool state)
 {
-	if (fd != -1)
+	if (write_fd != -1)
 	{
 		if (state)
-			FD_SET(fd, wSet);
+			FD_SET(write_fd, wSet);
 		else
-			FD_CLR(fd, wSet);
+			FD_CLR(write_fd, wSet);
 	}
 }
 
@@ -99,7 +99,7 @@ void	Client::readFile()
 	{
 		close(read_fd);
 		unlink(TMP_PATH);
-		setFileToRead(read_fd, false);
+		setFileToRead(false);
 		read_fd = -1;
 	}
 }
@@ -119,7 +119,7 @@ void	Client::writeFile()
 	{
 		req.body.clear();
 		close(write_fd);
-		setFileToWrite(write_fd, false);
+		setFileToWrite(false);
 		write_fd = -1;
 	}
 }

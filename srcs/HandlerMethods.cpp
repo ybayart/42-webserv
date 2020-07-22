@@ -12,6 +12,7 @@ void	Handler::dispatcher(Client &client)
 	map["CONNECT"] = &Handler::handleConnect;
 	map["TRACE"] = &Handler::handleTrace;
 	map["OPTIONS"] = &Handler::handleOptions;
+	map["DELETE"] = &Handler::handleDelete;
 	map["BAD"] = &Handler::handleBadRequest;
 
 	(this->*map[client.req.method])(client);
@@ -40,7 +41,7 @@ void	Handler::handleGet(Client &client)
 			}
 			else
 				client.status = Client::HEADERS;
-			client.setFileToRead(client.read_fd, true);	
+			client.setFileToRead(true);	
 			break ;
 		case Client::CGI:
 			if (client.read_fd == -1)
@@ -124,7 +125,7 @@ void	Handler::handlePost(Client &client)
 			}
 			else 
 				client.status = Client::HEADERS;
-			client.setFileToRead(client.read_fd, true);
+			client.setFileToRead(true);
 			break ;
 		case Client::CGI:
 			if (client.read_fd == -1)
@@ -168,7 +169,7 @@ void	Handler::handlePut(Client &client)
 			break ;
 		case Client::CODE:
 			if (_helper.getStatusCode(client))
-				client.setFileToWrite(client.write_fd, true);
+				client.setFileToWrite(true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == CREATED || client.res.status_code == NOCONTENT)
@@ -200,7 +201,7 @@ void	Handler::handleConnect(Client &client)
 	{
 		case Client::CODE:
 			_helper.getStatusCode(client);
-			client.setFileToRead(client.read_fd, true);
+			client.setFileToRead(true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;
@@ -235,7 +236,7 @@ void	Handler::handleTrace(Client &client)
 				}
 			}
 			else
-				client.setFileToRead(client.read_fd, true);
+				client.setFileToRead(true);
 			client.status = Client::BODY;	
 			break ;
 		case Client::BODY:
@@ -265,6 +266,34 @@ void	Handler::handleOptions(Client &client)
 	}
 }
 
+void	Handler::handleDelete(Client &client)
+{
+	switch (client.status)
+	{
+		case Client::CODE:
+			std::cout << "here\n";
+			if (!_helper.getStatusCode(client))
+				client.setFileToRead(true);
+			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Server"] = "webserv";
+			if (client.res.status_code == OK)
+			{
+				unlink(client.conf["path"].c_str());				
+				client.res.body = "File deleted\n";
+			}
+			client.status = Client::BODY;
+			break ;
+		case Client::BODY:
+			if (client.read_fd == -1)
+			{
+				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
+				client.response = createResponse(client.res);
+				client.status = Client::RESPONSE;
+			}
+			break ;
+	}
+}
+
 void	Handler::handleBadRequest(Client &client)
 {
 	struct stat		file_info;
@@ -276,7 +305,7 @@ void	Handler::handleBadRequest(Client &client)
 			client.res.status_code = BADREQUEST;
 			_helper.getErrorPage(client);
 			fstat(client.read_fd, &file_info);
-			client.setFileToRead(client.read_fd, true);
+			client.setFileToRead(true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;

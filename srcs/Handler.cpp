@@ -292,7 +292,7 @@ bool			Handler::checkSyntax(const Request &req)
 	if (req.method != "GET" && req.method != "POST"
 		&& req.method != "HEAD" && req.method != "PUT"
 		&& req.method != "CONNECT" && req.method != "TRACE"
-		&& req.method != "OPTIONS")
+		&& req.method != "OPTIONS" && req.method != "DELETE")
 		return (false);
 	if (req.method != "OPTIONS" && req.uri[0] != '/') //OPTIONS can have * as uri
 		return (false);
@@ -343,7 +343,7 @@ void			Handler::execCGI(Client &client)
 		close(tubes[0]);
 		client.write_fd = tubes[1];
 		client.read_fd = open(TMP_PATH, O_RDONLY);
-		client.setFileToWrite(tubes[1], true);
+		client.setFileToWrite(true);
 	}
 	_helper.freeAll(args, env);
 }
