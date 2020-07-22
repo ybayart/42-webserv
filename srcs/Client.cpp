@@ -80,8 +80,8 @@ void	Client::setFileToWrite(bool state)
 
 void	Client::readFile()
 {
-	char	buffer[BUFFER_SIZE + 1];
-	int		ret = 0;
+	char			buffer[BUFFER_SIZE + 1];
+	int				ret = 0;
 
 	if (cgi_pid != -1)
 	{
@@ -94,7 +94,8 @@ void	Client::readFile()
 	ret = read(read_fd, buffer, BUFFER_SIZE);
 	if (ret >= 0)
 		buffer[ret] = '\0';
-	res.body += buffer;
+	std::string	tmp(buffer, ret);
+	res.body += tmp;
 	if (ret == 0)
 	{
 		close(read_fd);

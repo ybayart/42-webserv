@@ -81,7 +81,6 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     	_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str());
 		_info.sin_addr.s_addr = inet_addr(host.c_str());
 		_info.sin_port = htons(_port);
-
     }
     else
     {
