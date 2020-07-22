@@ -6,7 +6,7 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 	ip = inet_ntoa(info.sin_addr);
 	port = htons(info.sin_port);
 	rBuf = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-	memset(rBuf, 0, BUFFER_SIZE + 1);
+	memset((void *)rBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, rSet);
 	chunk.len = 0;
@@ -85,7 +85,7 @@ void	Client::readFile()
 
 	if (cgi_pid != -1)
 	{
-		if (waitpid(cgi_pid, NULL, WNOHANG) == 0)
+		if (waitpid((pid_t)cgi_pid, (int *)NULL, (int)WNOHANG) == 0)
 			return ;
 		close(tmp_fd);
 		tmp_fd = -1;
@@ -136,7 +136,7 @@ void	Client::setToStandBy()
 	if (read_fd != -1)
 		close(write_fd);
 	write_fd = -1;
-	memset(rBuf, 0, BUFFER_SIZE + 1);
+	memset((void *)rBuf, (int)0, (size_t)(BUFFER_SIZE + 1));
 	conf.clear();
 	req.clear();
 	res.clear();

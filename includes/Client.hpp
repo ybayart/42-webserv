@@ -1,11 +1,12 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <sys/wait.h>
+#include <string.h>
 #include <iostream>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/select.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
 #include <string>
 #include <map>
