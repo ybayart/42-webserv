@@ -207,14 +207,6 @@ void			Config::getContent(std::string &buffer, std::string &context, std::string
 		throw(Config::InvalidConfigFileException(nb_line));
 }
 
-//TO COMPLETE
-int				Config::checkContent(config &tmp)
-{
-	if (tmp.find("server|") == tmp.end())
-		return (0);
-	return (1);
-}
-
 Config::InvalidConfigFileException::InvalidConfigFileException(void) {this->line = 0;}
 
 Config::InvalidConfigFileException::InvalidConfigFileException(size_t d) {this->line = d;}

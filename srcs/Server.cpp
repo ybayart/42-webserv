@@ -95,7 +95,6 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     }
 	_info.sin_family = AF_INET;
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-	strerror(errno);
     listen(_fd, 256);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
