@@ -290,6 +290,7 @@ char			**Helper::setEnv(Client &client)
 		pos = client.req.headers["Authorization"].find(" ");
 		envMap["AUTH_TYPE"] = client.req.headers["Authorization"].substr(0, pos);
 		envMap["REMOTE_USER"] = client.req.headers["Authorization"].substr(pos + 1);
+		envMap["REMOTE_IDENT"] = client.req.headers["Authorization"].substr(pos + 1);
 	}
 	if (client.conf.find("php") != client.conf.end() && client.req.uri.find(".php") != std::string::npos)
 		envMap["REDIRECT_STATUS"] = "200";

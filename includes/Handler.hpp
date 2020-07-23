@@ -41,7 +41,7 @@ class Handler
 		void			negotiate(Client &client);
 		void			createListing(Client &client);
 		bool			checkSyntax(const Request &request);
-		void			parseHeaders(std::string &buf, Request &req);
+		bool			parseHeaders(std::string &buf, Request &req);
 		void			getBody(Client &client);
 		void			dechunkBody(Client &client);
 		void			execCGI(Client &client);

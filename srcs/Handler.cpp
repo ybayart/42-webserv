@@ -25,8 +25,8 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	ft::getline(buffer, request.method, ' ');
 	ft::getline(buffer, request.uri, ' ');
 	ft::getline(buffer, request.version);
-	parseHeaders(buffer, request);
-	request.valid = checkSyntax(request);
+	if (parseHeaders(buffer, request))
+		request.valid = checkSyntax(request);
 	if (request.uri != "*" || request.method != "OPTIONS")
 		getConf(client, request, conf);
 	if (request.valid)
@@ -49,10 +49,12 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 	strcpy(client.rBuf, tmp.c_str());
 }
 
-void			Handler::parseHeaders(std::string &buf, Request &req)
+bool			Handler::parseHeaders(std::string &buf, Request &req)
 {
 	size_t		pos;
 	std::string	line;
+	std::string	key;
+	std::string	value;
 
 	while (!buf.empty())
 	{
@@ -62,10 +64,26 @@ void			Handler::parseHeaders(std::string &buf, Request &req)
 		if (line.find(':') != std::string::npos)
 		{
 			pos = line.find(':');
- 			req.headers[line.substr(0, pos)] = line.substr(pos + 2);
- 			req.headers[line.substr(0, pos)].pop_back(); //remove '\r'
+			key = line.substr(0, pos);
+			if (line[pos + 1] == ' ')
+				value = line.substr(pos + 2);
+			else
+				value = line.substr(pos + 1);
+			if (ft::isspace(value[0]) || ft::isspace(key[0]) || value.empty() || key.empty())
+			{
+				req.valid = false;
+				return (false);
+			}
+ 			req.headers[key] = value;
+ 			req.headers[key].pop_back(); //remove '\r'
+		}
+		else
+		{
+			req.valid = false;
+			return (false);
 		}
 	}
+	return (true);
 }
 
 void			Handler::parseBody(Client &client)
@@ -89,6 +107,12 @@ void			Handler::getBody(Client &client)
 
 	if (client.chunk.len == 0)
 		client.chunk.len = atoi(client.req.headers["Content-Length"].c_str());
+	if (client.chunk.len < 0)
+	{
+		client.req.method = "BAD";
+		client.status = Client::CODE;
+		return ;
+	}
 	bytes = strlen(client.rBuf);
 	if (bytes >= client.chunk.len)
 	{
@@ -102,7 +126,6 @@ void			Handler::getBody(Client &client)
 		client.chunk.len -= bytes;
 		client.req.body += client.rBuf;
 		memset(client.rBuf, 0, BUFFER_SIZE + 1);
-
 	}
 }
 
