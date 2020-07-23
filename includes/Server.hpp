@@ -42,6 +42,18 @@ class Server
 		int		writeResponse(std::vector<Client*>::iterator it);
 		void	send503(int fd);
 
+	class		ServerException: public std::exception
+	{
+		private:
+			std::string error;
+
+		public:
+			ServerException(void);
+			ServerException(std::string str);
+			virtual	~ServerException(void) throw();	
+			virtual const char		*what(void) const throw();
+	};
+
 	private:
 		int		getTimeDiff(std::string start);
 

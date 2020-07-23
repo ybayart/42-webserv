@@ -19,7 +19,8 @@ Server::~Server()
 		_clients.clear();
 		close(_fd);
 		FD_CLR(_fd, _rSet);
-		g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
+		if (_port >= 0)
+			g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }
 
@@ -79,6 +80,8 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     {
     	host = to_parse.substr(0, to_parse.find(":"));
     	_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str());
+		if (_port < 0)
+			throw(ServerException("Wrong port: " + std::to_string(_port)));
 		_info.sin_addr.s_addr = inet_addr(host.c_str());
 		_info.sin_port = htons(_port);
     }
@@ -86,11 +89,13 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
     {
 		_info.sin_addr.s_addr = INADDR_ANY;
 		_port = atoi(to_parse.c_str());
+		if (_port < 0)
+			throw(ServerException("Wrong port: " + std::to_string(_port)));
 		_info.sin_port = htons(_port);
-
     }
 	_info.sin_family = AF_INET;
 	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
+	strerror(errno);
     listen(_fd, 256);
 	fcntl(_fd, F_SETFL, O_NONBLOCK);
 	FD_SET(_fd, _rSet);
@@ -252,4 +257,21 @@ int		Server::getTimeDiff(std::string start)
 	result += (now_tm->tm_min - start_tm.tm_min) * 60;
 	result += (now_tm->tm_sec - start_tm.tm_sec);
 	return (result);
+}
+
+Server::ServerException::ServerException(void)
+{
+	error = "Undefined Server Exception";	
+}
+
+Server::ServerException::ServerException(std::string str)
+{
+	error = str;
+}
+
+Server::ServerException::~ServerException(void) throw() {}
+
+const char			*Server::ServerException::what(void) const throw()
+{
+	return (error.c_str());
 }

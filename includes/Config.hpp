@@ -45,7 +45,6 @@ class Config
 	private:
 		std::string	readFile(char *file);
 		void		getContent(std::string &buffer, std::string &context, std::string prec, size_t &nb_line, config &config);
-		int			checkContent(config &tmp);
 };
 
 #endif
