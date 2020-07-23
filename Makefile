@@ -51,9 +51,11 @@ CC			=	clang++
 CC_FLAGS	=	-Wall -Wextra -Werror
 
 
-# DELETE #
+# COMMANDS #
 
 RM			=	rm -rf
+
+PWD			=	$(shell pwd)
 
 
 # DIRECTORIES #
@@ -87,12 +89,14 @@ OBJS 		=	$(SRCS:%.cpp=$(DIR_OBJS)%.o)
 
 NAME 		=	webserv
 
+CONFIG		=	webserv.conf
+
 
 # **************************************************************************** #
 
 ## RULES ##
 
-all:			$(NAME)
+all:			$(NAME) $(CONFIG)
 
 # VARIABLES RULES #
 
@@ -113,6 +117,10 @@ $(DIR_OBJS)%.o: $(DIR_SRCS)%.cpp
 $(DIR_OBJS):
 				@mkdir $(DIR_OBJS)
 
+$(CONFIG):
+				@cat webserv_model.conf | sed 's=PWD=$(PWD)=g' > webserv.conf
+				@printf "\033[2K\r$(_GREEN) Default config file 'webserv.conf' created. $(_END)✅\n"
+
 
 # OBLIGATORY PART #
 
@@ -123,6 +131,8 @@ clean:
 fclean:			clean
 				@$(RM) $(NAME)
 				@printf "$(_RED) '"$(NAME)"' has been deleted. $(_END)🗑️\n"
+				@$(RM) webserv.conf
+				@printf "$(_RED) '"webserv.conf"' has been deleted. $(_END)🗑️\n"
 
 re:				fclean all
 
