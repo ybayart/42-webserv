@@ -55,7 +55,7 @@ void	Handler::handleGet(Client &client)
 			if (!S_ISDIR(file_info.st_mode))
 				client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
 			if (client.res.headers["Content-Type"][0] == '\0')
-				client.res.headers["Content-Type"] = _helper.findType(client.req);
+				client.res.headers["Content-Type"] = _helper.findType(client);
 			if (client.res.status_code == UNAUTHORIZED)
 				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
@@ -92,7 +92,7 @@ void	Handler::handleHead(Client &client)
 			if (client.res.status_code == OK)
 			{
 				client.res.headers["Last-Modified"] = _helper.getLastModified(client.conf["path"]);
-				client.res.headers["Content-Type"] = _helper.findType(client.req);
+				client.res.headers["Content-Type"] = _helper.findType(client);
 			}
 			else if (client.res.status_code == UNAUTHORIZED)
 				client.res.headers["WWW-Authenticate"] = "Basic";

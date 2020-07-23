@@ -17,7 +17,7 @@ class Helper
 
 		std::string		getDate();
 		std::string		getLastModified(std::string path);
-		std::string		findType(Request &req);
+		std::string		findType(Client &client);
 		void			getErrorPage(Client &client);
 		int				findLen(Client &client);
 		void			fillBody(Client &client);

@@ -19,13 +19,13 @@ Helper::~Helper()
 
 }
 
-std::string		Helper::findType(Request &req)
+std::string		Helper::findType(Client &client)
 {
 	std::string 	extension;
 
-	if (req.uri.find_last_of('.') != std::string::npos)
+	if (client.conf["path"].find_last_of('.') != std::string::npos)
 	{
-		extension = req.uri.substr(req.uri.find_last_of('.'));		
+		extension = client.conf["path"].substr(client.conf["path"].find_last_of('.'));	
 		if (MIMETypes.find(extension) != MIMETypes.end())
 			return (MIMETypes[extension]);
 		else
@@ -39,6 +39,7 @@ void			Helper::getErrorPage(Client &client)
 	std::string		path;
 
 	path = client.conf["error"] + "/" + client.res.status_code.substr(0, 3) + ".html";
+	client.conf["path"] = path;
 	client.read_fd = open(path.c_str(), O_RDONLY);
 }
 
