@@ -109,6 +109,7 @@ void	Server::refuseConnection()
 	socklen_t			len;
 
 	errno = 0;
+	len = sizeof(struct sockaddr);
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd == -1)
 	{
@@ -131,8 +132,9 @@ void	Server::acceptConnection()
 	socklen_t			len;
 	Client				*newOne = NULL;
 
-	memset(&info, 0, sizeof(info));
+	memset(&info, 0, sizeof(struct sockaddr));
 	errno = 0;
+	len = sizeof(struct sockaddr);
 	fd = accept(_fd, (struct sockaddr *)&info, &len);
 	if (fd == -1)
 	{
