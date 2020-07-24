@@ -68,6 +68,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	std::string		to_parse;
 	std::string		host;
 	int				ret;
+	std::string		error;
 
 	_readSet = readSet;
 	_writeSet = writeSet;
@@ -78,16 +79,27 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	errno = 0;
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (_fd == -1)
-		throw(ServerException("Error with socket(): " + strerror(errno)));
+	{
+		error = strerror(errno);
+		error.insert(0, "Error with socket(): ");
+		throw(ServerException(error.c_str()));
+	}
     ret = setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     if (ret == -1)
-		throw(ServerException("Error with setsockopt(): " + strerror(errno)));
+    {
+    	error = strerror(errno);
+    	error.insert(0, "Error with setsockopt(): ");
+		throw(ServerException(error.c_str()));
+    }
     if (to_parse.find(":") != std::string::npos)
     {
     	host = to_parse.substr(0, to_parse.find(":"));
     	_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str());
 		if (_port < 0)
-			throw(ServerException("Wrong port: " + std::to_string(_port)));
+		{
+			error = "Wrong port: " + std::to_string(_port);
+			throw(ServerException(error.c_str()));
+		}
 		_info.sin_addr.s_addr = inet_addr(host.c_str());
 		_info.sin_port = htons(_port);
     }
@@ -102,13 +114,25 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	_info.sin_family = AF_INET;
 	ret = bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
 	if (ret == -1)
-		throw(ServerException("Error with bind(): " + strerror(errno)));
+	{
+		error = strerror(errno);
+		error.insert(0, "Error with bind(): ");
+		throw(ServerException(error.c_str()));
+	}
     ret = listen(_fd, 256);
     if (ret == -1)
-		throw(ServerException("Error with listen(): " + strerror(errno)));
+    {
+    	error = strerror(errno);
+    	error.insert(0, "Error with listen(): ");
+		throw(ServerException(error.c_str()));
+    }
 	ret = fcntl(_fd, F_SETFL, O_NONBLOCK);
 	if (ret == -1)
-		throw(ServerException("Error with fcntl(): " + strerror(errno)));
+	{
+		error = strerror(errno);
+		error.insert(0, "Error with fcntl(): ");
+		throw(ServerException(error.c_str()));
+	}
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
     g_logger.log("[" + std::to_string(_port) + "] " + "listening...", LOW);
