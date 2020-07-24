@@ -38,7 +38,7 @@ class Config
 		public:
 			InvalidConfigFileException(size_t d);
 			virtual ~InvalidConfigFileException(void) throw();
-
+			size_t						getLine(void) const; 
 			virtual const char			*what(void) const throw();
 	};
 

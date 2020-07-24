@@ -216,13 +216,12 @@ Config::InvalidConfigFileException::InvalidConfigFileException(size_t d) {this->
 
 Config::InvalidConfigFileException::~InvalidConfigFileException(void) throw() {}
 
+size_t						Config::InvalidConfigFileException::getLine(void) const
+{
+	return (this->line);
+}
+
 const char					*Config::InvalidConfigFileException::what(void) const throw()
 {
-	std::string str;
-	if (this->line)
-	{
-		str = "line " + std::to_string(this->line) + ": Invalid Config File";
-		return (str.c_str());
-	}
 	return ("Invalid Config File");
 }

@@ -31,7 +31,17 @@ int 	main(int ac, char **av)
 	}
 	catch (std::exception &e)
 	{
-		std::cerr << "Error: " << e.what() << std::endl;
+		std::cerr << "Error: ";
+		try
+		{
+			Config::InvalidConfigFileException &ie = dynamic_cast<Config::InvalidConfigFileException&>(e);
+			if (ie.getLine())
+				std::cerr << "line: " << ie.getLine() << ": ";
+		}
+		catch (std::exception &e)
+		{	
+		}
+		std::cerr << e.what() << std::endl;
 		return (1);
 	}
 
