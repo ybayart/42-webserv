@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "Handler.hpp"
 
 void	Handler::dispatcher(Client &client)

@@ -27,7 +27,7 @@ int 	main(int ac, char **av)
 	try
 	{
 		config.parse(av[1], g_servers);
-		config.init(&rSet, &wSet, &readSet, &writeSet, &timeout); // missing exceptions in Server::init
+		config.init(&rSet, &wSet, &readSet, &writeSet, &timeout);
 	}
 	catch (std::exception &e)
 	{

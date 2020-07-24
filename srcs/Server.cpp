@@ -67,6 +67,7 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	int				yes = 1;
 	std::string		to_parse;
 	std::string		host;
+	int				ret;
 
 	_readSet = readSet;
 	_writeSet = writeSet;
@@ -74,8 +75,13 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	_rSet = rSet;
 
 	to_parse = _conf[0]["server|"]["listen"];
+	errno = 0;
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
-    setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+	if (_fd == -1)
+		throw(ServerException("Error with socket(): " + strerror(errno)));
+    ret = setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+    if (ret == -1)
+		throw(ServerException("Error with setsockopt(): " + strerror(errno)));
     if (to_parse.find(":") != std::string::npos)
     {
     	host = to_parse.substr(0, to_parse.find(":"));
@@ -94,9 +100,15 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 		_info.sin_port = htons(_port);
     }
 	_info.sin_family = AF_INET;
-	bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-    listen(_fd, 256);
-	fcntl(_fd, F_SETFL, O_NONBLOCK);
+	ret = bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
+	if (ret == -1)
+		throw(ServerException("Error with bind(): " + strerror(errno)));
+    ret = listen(_fd, 256);
+    if (ret == -1)
+		throw(ServerException("Error with listen(): " + strerror(errno)));
+	ret = fcntl(_fd, F_SETFL, O_NONBLOCK);
+	if (ret == -1)
+		throw(ServerException("Error with fcntl(): " + strerror(errno)));
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
     g_logger.log("[" + std::to_string(_port) + "] " + "listening...", LOW);
