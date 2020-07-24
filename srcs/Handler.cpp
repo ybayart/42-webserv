@@ -167,7 +167,7 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 	std::vector<config>::iterator it(conf.begin());
 	while (it != conf.end())
 	{
-		if (req.headers["Host"] == (*it)["server|"]["server_name"] + "\r")
+		if (req.headers["Host"] == (*it)["server|"]["server_name"])
 		{
 			to_parse = *it;
 			break ;
