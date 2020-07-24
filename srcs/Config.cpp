@@ -90,9 +90,12 @@ void			Config::parse(char *file, std::vector<Server> &servers)
 				std::vector<Server>::iterator it(servers.begin());
 				while (it != servers.end())
 				{
-					if (tmp["server|"]["listen"] == it->_conf[0]["server|"]["listen"])
+					if (tmp["server|"]["listen"] == it->_conf.back()["server|"]["listen"])
 					{
-						it->_conf.push_back(tmp);
+						if (tmp["server|"]["server_name"] == it->_conf.back()["server|"]["server_name"])
+							throw(Config::InvalidConfigFileException(nb_line));
+						else
+							it->_conf.push_back(tmp);
 						break ;
 					}
 					++it;
