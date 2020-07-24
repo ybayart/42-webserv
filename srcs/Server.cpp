@@ -80,15 +80,13 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	_fd = socket(PF_INET, SOCK_STREAM, 0);
 	if (_fd == -1)
 	{
-		error = strerror(errno);
-		error.insert(0, "Error with socket(): ");
+		error = "Error with socket(): " + std::string(strerror(errno));
 		throw(ServerException(error.c_str()));
 	}
     ret = setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
     if (ret == -1)
     {
-    	error = strerror(errno);
-    	error.insert(0, "Error with setsockopt(): ");
+    	error = "Error with setsockopt(): " + std::string(strerror(errno));
 		throw(ServerException(error.c_str()));
     }
     if (to_parse.find(":") != std::string::npos)
@@ -115,22 +113,19 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	ret = bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
 	if (ret == -1)
 	{
-		error = strerror(errno);
-		error.insert(0, "Error with bind(): ");
+		error = "Error with bind(): " + std::string(strerror(errno));
 		throw(ServerException(error.c_str()));
 	}
     ret = listen(_fd, 256);
     if (ret == -1)
     {
-    	error = strerror(errno);
-    	error.insert(0, "Error with listen(): ");
+    	error = "Error with listen(): " + std::string(strerror(errno));
 		throw(ServerException(error.c_str()));
     }
 	ret = fcntl(_fd, F_SETFL, O_NONBLOCK);
 	if (ret == -1)
 	{
-		error = strerror(errno);
-		error.insert(0, "Error with fcntl(): ");
+		error = "Error with fcntl(): " + std::string(strerror(errno));
 		throw(ServerException(error.c_str()));
 	}
 	FD_SET(_fd, _rSet);
