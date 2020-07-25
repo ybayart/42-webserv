@@ -212,17 +212,16 @@ void			Config::getContent(std::string &buffer, std::string &context, std::string
 
 Config::InvalidConfigFileException::InvalidConfigFileException(void) {this->line = 0;}
 
-Config::InvalidConfigFileException::InvalidConfigFileException(size_t d) {this->line = d;}
+Config::InvalidConfigFileException::InvalidConfigFileException(size_t d) {
+	this->line = d;
+	this->error = "line " + std::to_string(this->line) + ": Invalid Config File";
+}
 
 Config::InvalidConfigFileException::~InvalidConfigFileException(void) throw() {}
 
 const char					*Config::InvalidConfigFileException::what(void) const throw()
 {
-	std::string str;
 	if (this->line)
-	{
-		str = "line " + std::to_string(this->line) + ": Invalid Config File";
-		return (str.c_str());
-	}
+		return (error.c_str());
 	return ("Invalid Config File");
 }

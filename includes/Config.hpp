@@ -32,6 +32,7 @@ class Config
 	{
 		private:
 			size_t						line;
+			std::string					error;
 
 			InvalidConfigFileException(void);
 
