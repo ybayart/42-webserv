@@ -67,7 +67,6 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 	int				yes = 1;
 	std::string		to_parse;
 	std::string		host;
-	int				ret;
 	std::string		error;
 
 	_readSet = readSet;
@@ -77,57 +76,32 @@ void	Server::init(fd_set *readSet, fd_set *writeSet, fd_set *rSet, fd_set *wSet)
 
 	to_parse = _conf[0]["server|"]["listen"];
 	errno = 0;
-	_fd = socket(PF_INET, SOCK_STREAM, 0);
-	if (_fd == -1)
-	{
-		error = "socket(): " + std::string(strerror(errno));
-		throw(ServerException(error.c_str()));
-	}
-    ret = setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-    if (ret == -1)
-    {
-    	error = "setsockopt(): " + std::string(strerror(errno));
-		throw(ServerException(error.c_str()));
-    }
+	if ((_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1)
+		throw(ServerException("socket()", std::string(strerror(errno))));
+    if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+		throw(ServerException("setsockopt()", std::string(strerror(errno))));
     if (to_parse.find(":") != std::string::npos)
     {
     	host = to_parse.substr(0, to_parse.find(":"));
-    	_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str());
-		if (_port < 0)
-		{
-			error = "Wrong port: " + std::to_string(_port);
-			throw(ServerException(error.c_str()));
-		}
+    	if ((_port = atoi(to_parse.substr(to_parse.find(":") + 1).c_str())) < 0)
+			throw(ServerException("Wrong port", std::to_string(_port)));
 		_info.sin_addr.s_addr = inet_addr(host.c_str());
 		_info.sin_port = htons(_port);
     }
     else
     {
 		_info.sin_addr.s_addr = INADDR_ANY;
-		_port = atoi(to_parse.c_str());
-		if (_port < 0)
-			throw(ServerException("Wrong port: " + std::to_string(_port)));
+		if ((_port = atoi(to_parse.c_str())) < 0)
+			throw(ServerException("Wrong port", std::to_string(_port)));
 		_info.sin_port = htons(_port);
     }
 	_info.sin_family = AF_INET;
-	ret = bind(_fd, (struct sockaddr *)&_info, sizeof(_info));
-	if (ret == -1)
-	{
-		error = "bind(): " + std::string(strerror(errno));
-		throw(ServerException(error.c_str()));
-	}
-    ret = listen(_fd, 256);
-    if (ret == -1)
-    {
-    	error = "listen(): " + std::string(strerror(errno));
-		throw(ServerException(error.c_str()));
-    }
-	ret = fcntl(_fd, F_SETFL, O_NONBLOCK);
-	if (ret == -1)
-	{
-		error = "fcntl(): " + std::string(strerror(errno));
-		throw(ServerException(error.c_str()));
-	}
+	if (bind(_fd, (struct sockaddr *)&_info, sizeof(_info)) == -1)
+		throw(ServerException("bind()", std::string(strerror(errno))));
+    if (listen(_fd, 256) == -1)
+		throw(ServerException("listen()", std::string(strerror(errno))));
+	if (fcntl(_fd, F_SETFL, O_NONBLOCK) == -1)
+		throw(ServerException("fcntl()", std::string(strerror(errno))));
 	FD_SET(_fd, _rSet);
     _maxFd = _fd;
     g_logger.log("[" + std::to_string(_port) + "] " + "listening...", LOW);
@@ -293,17 +267,24 @@ int		Server::getTimeDiff(std::string start)
 
 Server::ServerException::ServerException(void)
 {
-	error = "Undefined Server Exception";	
+	this->function = "";
+	this->error = "Undefined Server Exception";	
 }
 
-Server::ServerException::ServerException(std::string str)
+Server::ServerException::ServerException(std::string function, std::string error)
 {
-	error = str;
+	this->function = function;
+	this->error = error;
 }
 
 Server::ServerException::~ServerException(void) throw() {}
 
+const std::string			&Server::ServerException::getFunction(void) const
+{
+	return (this->function);
+}
+
 const char			*Server::ServerException::what(void) const throw()
 {
-	return (error.c_str());
+	return (this->error.c_str());
 }

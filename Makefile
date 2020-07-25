@@ -50,7 +50,6 @@ CC			=	clang++
 
 CC_FLAGS	=	-Wall -Wextra -Werror
 
-
 # COMMANDS #
 
 RM			=	rm -rf

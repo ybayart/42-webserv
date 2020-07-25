@@ -45,12 +45,14 @@ class Server
 	class		ServerException: public std::exception
 	{
 		private:
+			std::string function;
 			std::string error;
 
 		public:
 			ServerException(void);
-			ServerException(std::string str);
+			ServerException(std::string function, std::string error);
 			virtual	~ServerException(void) throw();	
+			const std::string		&getFunction(void) const;
 			virtual const char		*what(void) const throw();
 	};
 

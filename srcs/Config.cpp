@@ -223,5 +223,5 @@ size_t						Config::InvalidConfigFileException::getLine(void) const
 
 const char					*Config::InvalidConfigFileException::what(void) const throw()
 {
-	return ("Invalid Config File");
+	return ("Invalid config file");
 }
