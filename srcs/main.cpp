@@ -1,10 +1,15 @@
 #include "Server.hpp"
 #include "Config.hpp"
 #include "Logger.hpp"
-#include "utils.h"
 
 std::vector<Server>		g_servers;
 Logger					g_logger(1, "console", HIGH);
+
+int		ret_error(std::string error)
+{
+	std::cerr << error << std::endl;
+	return (1);
+}
 
 int 	main(int ac, char **av)
 {
@@ -18,10 +23,7 @@ int 	main(int ac, char **av)
 	struct timeval			timeout;
 
 	if (ac != 2)
-	{
-		std::cerr << "Usage " << av[0] << " config-file" << std::endl;
-		return (1);
-	}
+		return (ret_error("Usage: ./webserv config-file"));
 	try
 	{
 		config.parse(av[1], g_servers);
@@ -29,9 +31,10 @@ int 	main(int ac, char **av)
 	}
 	catch (std::exception &e)
 	{
-		ft::print_exception(e);
+		std::cerr << "Error: " << e.what() << std::endl;
 		return (1);
 	}
+
 	while (1)
 	{
 		readSet = rSet;
@@ -41,17 +44,10 @@ int 	main(int ac, char **av)
 		{
 			if (FD_ISSET(s->getFd(), &readSet))
 			{
-				try
-				{
-					if (config.getOpenFd(g_servers) > MAX_FD)
-						s->refuseConnection();
-					else
-						s->acceptConnection();
-				}
-				catch (std::exception &e)
-				{
-					ft::print_exception(e);
-				}
+				if (config.getOpenFd(g_servers) > MAX_FD)
+					s->refuseConnection();
+				else
+					s->acceptConnection();
 			}
 			if (!s->_tmp_clients.empty())
 				if (FD_ISSET(s->_tmp_clients.front(), &writeSet))
