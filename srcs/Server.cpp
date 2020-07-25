@@ -115,12 +115,8 @@ void	Server::refuseConnection()
 
 	errno = 0;
 	len = sizeof(struct sockaddr);
-	fd = accept(_fd, (struct sockaddr *)&info, &len);
-	if (fd == -1)
-	{
-		std::cerr << "error accept(): " << strerror(errno) << std::endl;
-		return ;
-	}
+	if ((fd = accept(_fd, (struct sockaddr *)&info, &len)))
+		throw(ServerException("accept()", std::string(strerror(errno))));
 	if (_tmp_clients.size() < 10)
 	{
 		_tmp_clients.push(fd);
@@ -140,12 +136,8 @@ void	Server::acceptConnection()
 	memset(&info, 0, sizeof(struct sockaddr));
 	errno = 0;
 	len = sizeof(struct sockaddr);
-	fd = accept(_fd, (struct sockaddr *)&info, &len);
-	if (fd == -1)
-	{
-		std::cerr << "error accept(): " << strerror(errno) << "\n";
-		return ;
-	}
+	if ((fd = accept(_fd, (struct sockaddr *)&info, &len)) == -1)
+		throw(ServerException("accept()", std::string(strerror(errno))));
 	if (fd > _maxFd)
 		_maxFd = fd;
 	newOne = new Client(fd, _rSet, _wSet, info);
