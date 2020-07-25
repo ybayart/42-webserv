@@ -44,10 +44,17 @@ int 	main(int ac, char **av)
 		{
 			if (FD_ISSET(s->getFd(), &readSet))
 			{
-				if (config.getOpenFd(g_servers) > MAX_FD)
-					s->refuseConnection();
-				else
-					s->acceptConnection();
+				try
+				{
+					if (config.getOpenFd(g_servers) > MAX_FD)
+						s->refuseConnection();
+					else
+						s->acceptConnection();
+				}
+				catch (std::exception &e)
+				{
+					std::cerr << "Error: " << e.what() << std::endl;
+				}
 			}
 			if (!s->_tmp_clients.empty())
 				if (FD_ISSET(s->_tmp_clients.front(), &writeSet))

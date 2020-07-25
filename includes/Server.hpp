@@ -52,7 +52,6 @@ class Server
 			ServerException(void);
 			ServerException(std::string function, std::string error);
 			virtual	~ServerException(void) throw();	
-			const std::string		&getFunction(void) const;
 			virtual const char		*what(void) const throw();
 	};
 

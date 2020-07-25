@@ -258,22 +258,15 @@ int		Server::getTimeDiff(std::string start)
 
 Server::ServerException::ServerException(void)
 {
-	this->function = "";
 	this->error = "Undefined Server Exception";	
 }
 
 Server::ServerException::ServerException(std::string function, std::string error)
 {
-	this->function = function;
-	this->error = error;
+	this->error = function + ": " + error;
 }
 
 Server::ServerException::~ServerException(void) throw() {}
-
-const std::string			&Server::ServerException::getFunction(void) const
-{
-	return (this->function);
-}
 
 const char			*Server::ServerException::what(void) const throw()
 {
