@@ -1,5 +1,7 @@
 #include <string>
 #include <iostream>
+#include "Config.hpp"
+#include "Server.hpp"
 
 namespace ft
 {
@@ -77,5 +79,29 @@ c == ' ')
 			++i;
 		}
 		free(env);
+	}
+
+	void	print_exception(std::exception &e)
+	{
+		std::cerr << "Error: ";
+		try
+		{
+			Config::InvalidConfigFileException &ie = dynamic_cast<Config::InvalidConfigFileException&>(e);
+			if (ie.getLine())
+				std::cerr << "line " << ie.getLine() << ": ";
+		}
+		catch (std::bad_cast &b)
+		{
+			try
+			{
+				Server::ServerException &se = dynamic_cast<Server::ServerException&>(e);
+				if (!se.getFunction().empty())
+					std::cerr << se.getFunction() << ": ";
+			}
+			catch (std::bad_cast &b)
+			{
+			}
+		}
+		std::cerr << e.what() << std::endl;
 	}
 }

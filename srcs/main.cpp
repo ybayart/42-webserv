@@ -1,15 +1,10 @@
 #include "Server.hpp"
 #include "Config.hpp"
 #include "Logger.hpp"
+#include "utils.h"
 
 std::vector<Server>		g_servers;
 Logger					g_logger(1, "console", HIGH);
-
-int		ret_error(std::string error)
-{
-	std::cerr << error << std::endl;
-	return (1);
-}
 
 int 	main(int ac, char **av)
 {
@@ -23,7 +18,10 @@ int 	main(int ac, char **av)
 	struct timeval			timeout;
 
 	if (ac != 2)
-		return (ret_error("Usage: ./webserv config-file"));
+	{
+		std::cerr << "Usage " << av[0] << " config-file" << std::endl;
+		return (1);
+	}
 	try
 	{
 		config.parse(av[1], g_servers);
@@ -31,30 +29,9 @@ int 	main(int ac, char **av)
 	}
 	catch (std::exception &e)
 	{
-		std::cerr << "Error: ";
-		try
-		{
-			Config::InvalidConfigFileException &ie = dynamic_cast<Config::InvalidConfigFileException&>(e);
-			if (ie.getLine())
-				std::cerr << "line " << ie.getLine() << ": ";
-		}
-		catch (std::bad_cast &b)
-		{
-			try
-			{
-				Server::ServerException &se = dynamic_cast<Server::ServerException&>(e);
-				if (!se.getFunction().empty())
-					std::cerr << se.getFunction() << ": ";
-			}
-			catch (std::bad_cast &b)
-			{
-			}
-		}
-		std::cerr << e.what() << std::endl;
+		ft::print_exception(e);
 		return (1);
 	}
-
-
 	while (1)
 	{
 		readSet = rSet;
