@@ -82,14 +82,27 @@ void	Client::readFile()
 {
 	char			buffer[BUFFER_SIZE + 1];
 	int				ret = 0;
+	int				status = 0;
 
 	if (cgi_pid != -1)
 	{
-		if (waitpid((pid_t)cgi_pid, (int *)NULL, (int)WNOHANG) == 0)
+		if (waitpid((pid_t)cgi_pid, (int *)&status, (int)WNOHANG) == 0)
 			return ;
-		close(tmp_fd);
-		tmp_fd = -1;
-		cgi_pid = -1;
+		else
+		{
+			if (WEXITSTATUS(status) == 1)
+			{
+				close(tmp_fd);
+				tmp_fd = -1;
+				cgi_pid = -1;
+				close(read_fd);
+				unlink(TMP_PATH);
+				setFileToRead(false);
+				read_fd = -1;
+				res.body = "Error with cgi\n";
+				return ;
+			}
+		}
 	}
 	ret = read(read_fd, buffer, BUFFER_SIZE);
 	if (ret >= 0)

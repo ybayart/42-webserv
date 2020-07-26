@@ -207,6 +207,8 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 		if (client.conf.find("index") != elmt.end()
 		&& client.conf["listing"] != "on")
 			client.conf["path"] += "/" + elmt["index"];
+	if (req.method == "GET")
+		client.conf["savedpath"] = client.conf["path"];
 	g_logger.log("path requested from " + client.ip + ":" + std::to_string(client.port) + ": " + client.conf["path"], MED);
 }
 
@@ -231,12 +233,12 @@ void			Handler::negotiate(Client &client)
 				for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
 				{
 					ext = it->second + "." + it2->second;
-					path = client.conf["path"] + "." + ext;
+					path = client.conf["savedpath"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
 						break ;
 					ext = it2->second + "." + it->second;
-					path = client.conf["path"] + "." + ext;
+					path = client.conf["savedpath"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
 						break ;
@@ -245,7 +247,7 @@ void			Handler::negotiate(Client &client)
 			else
 			{
 				ext = it->second;
-				path = client.conf["path"] + "." + ext;
+				path = client.conf["savedpath"] + "." + ext;
 				fd = open(path.c_str(), O_RDONLY);
 				if (fd != -1)
 					break ;
@@ -261,7 +263,7 @@ void			Handler::negotiate(Client &client)
 			for (std::multimap<std::string, std::string>::reverse_iterator it2(charsetMap.rbegin()); it2 != charsetMap.rend(); ++it2)
 			{
 				ext = it2->second;
-				path = client.conf["path"] + "." + it2->second;
+				path = client.conf["savedpath"] + "." + it2->second;
 				fd = open(path.c_str(), O_RDONLY);
 				if (fd != -1)
 					break ;
@@ -334,10 +336,9 @@ void			Handler::execCGI(Client &client)
 	int				ret;
 	int				tubes[2];
 
-	if (client.conf.find("php") != client.conf.end()
-	&& client.conf["path"].find(".php") != std::string::npos)
+	if (client.conf["php"][0] && client.conf["path"].find(".php") != std::string::npos)
 		path = client.conf["php"];
-	else if (client.conf.find("exec") != client.conf.end())
+	else if (client.conf["exec"][0])
 		path = client.conf["exec"];
 	else
 		path = client.conf["path"];
@@ -359,7 +360,10 @@ void			Handler::execCGI(Client &client)
 		errno = 0;
 		ret = execve(path.c_str(), args, env);
 		if (ret == -1)
-			std::cout << "Error with CGI: " << strerror(errno) << std::endl;
+		{
+			std::cerr << "Error with CGI: " << strerror(errno) << std::endl;
+			exit(1);
+		}
 	}
 	else
 	{

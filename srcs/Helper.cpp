@@ -22,10 +22,12 @@ Helper::~Helper()
 std::string		Helper::findType(Client &client)
 {
 	std::string 	extension;
+	size_t			pos;
 
 	if (client.conf["path"].find_last_of('.') != std::string::npos)
 	{
-		extension = client.conf["path"].substr(client.conf["path"].find_last_of('.'));	
+		pos = client.conf["path"].find('.');
+		extension = client.conf["path"].substr(pos, client.conf["path"].find('.', pos + 1) - pos);
 		if (MIMETypes.find(extension) != MIMETypes.end())
 			return (MIMETypes[extension]);
 		else
