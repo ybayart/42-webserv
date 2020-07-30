@@ -34,12 +34,40 @@ if [ ! -f "webserv" ]; then
 	make
 fi
 
+function check_return_not
+{
+	if [ $? == $1 ]; then
+		printf "Wrong return"
+	fi
+}
+
 printf "${_ICYAN}${_BOLD}${_GREY}  ARGS TESTS  ${_END}\n"
+printf "${_GREEN}./webserv${_END}\n"
 ./webserv
-if [ $? == 0 ]; then
-	printf "Wrong return"
-fi
-./webserv aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-if [ $? == 0 ]; then
-	printf "Wrong return"
-fi
+check_return_not 0
+
+printf "${_GREEN}./webserv ${_YELLOW}1 2${_END}\n"
+./webserv 1 2
+check_return_not 0
+
+printf "${_GREEN}./webserv ${_YELLOW}aaaaa${_END}\n"
+./webserv aaaaa
+check_return_not 0
+
+printf "${_ICYAN}${_BOLD}${_GREY}  SYNTAX CONFIG TESTS  ${_END}\n"
+printf "${_GREEN}./webserv ${_YELLOW}./conf/broken.conf${_END}\n"
+./webserv ./conf/broken.conf
+check_return_not 0
+
+printf "${_GREEN}./webserv ${_YELLOW}./conf/broken2.conf${_END}\n"
+./webserv ./conf/broken2.conf
+check_return_not 0
+
+
+printf "${_GREEN}./webserv ${_YELLOW}./conf/broken3.conf${_END}\n"
+./webserv ./conf/broken3.conf
+check_return_not 0
+
+printf "${_GREEN}./webserv ${_YELLOW}./conf/broken3.conf${_END}\n"
+./webserv ./conf/webserv.conf
+check_return_not 0
