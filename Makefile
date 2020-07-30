@@ -65,6 +65,8 @@ DIR_SRCS	=	./srcs/
 
 DIR_OBJS	=	./compiled_srcs/
 
+DIR_CONFIGS =	./conf/
+
 
 # FILES #
 
@@ -95,7 +97,7 @@ CONFIG		=	webserv.conf
 
 ## RULES ##
 
-all:			$(NAME) $(CONFIG)
+all:			$(NAME) $(DIR_CONFIGS)$(CONFIG)
 
 # VARIABLES RULES #
 
@@ -116,9 +118,9 @@ $(DIR_OBJS)%.o: $(DIR_SRCS)%.cpp
 $(DIR_OBJS):
 				@mkdir $(DIR_OBJS)
 
-$(CONFIG):
-				@cat webserv_model.conf | sed 's=PWD=$(PWD)=g' > webserv.conf
-				@printf "\033[2K\r$(_GREEN) Default config file 'webserv.conf' created. $(_END)✅\n"
+$(DIR_CONFIGS)$(CONFIG):
+				@cat $(DIR_CONFIGS)webserv_model.conf | sed 's=PWD=$(PWD)=g' > $(DIR_CONFIGS)$(CONFIG)
+				@printf "\033[2K\r$(_GREEN) Default config file '$(DIR_CONFIGS)$(CONFIG)' created. $(_END)✅\n"
 
 
 # OBLIGATORY PART #
@@ -130,8 +132,8 @@ clean:
 fclean:			clean
 				@$(RM) $(NAME)
 				@printf "$(_RED) '"$(NAME)"' has been deleted. $(_END)🗑️\n"
-				@$(RM) webserv.conf
-				@printf "$(_RED) '"webserv.conf"' has been deleted. $(_END)🗑️\n"
+				@$(RM) $(DIR_CONFIGS)$(CONFIG)
+				@printf "$(_RED) '"$(DIR_CONFIGS)$(CONFIG)"' has been deleted. $(_END)🗑️\n"
 
 re:				fclean all
 

@@ -34,11 +34,12 @@ if [ ! -f "webserv" ]; then
 	make
 fi
 
-printf "${_ICYAN}${_BOLD}${_GREY}  NOOB TESTS  ${_END}\n"
-printf "${_CYAN}test${_END}: wrong args\n"
+printf "${_ICYAN}${_BOLD}${_GREY}  ARGS TESTS  ${_END}\n"
 ./webserv
 if [ $? == 0 ]; then
 	printf "Wrong return"
 fi
-
-./webserv ${config_files[0]}
+./webserv aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+if [ $? == 0 ]; then
+	printf "Wrong return"
+fi
