@@ -6,7 +6,7 @@
 #    By: lmartin <lmartin@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2020/06/30 21:31:46 by lmartin           #+#    #+#              #
-#    Updated: 2020/07/23 21:07:54 by lmartin          ###   ########.fr        #
+#    Updated: 2020/07/25 03:29:33 by lmartin          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 #
@@ -134,12 +134,6 @@ fclean:			clean
 				@printf "$(_RED) '"webserv.conf"' has been deleted. $(_END)🗑️\n"
 
 re:				fclean all
-
-# NORME #
-
-norm:
-				norminette $(DIR_SRCS)
-				norminette $(DIR_HEADERS)
 
 # BONUS #
 
