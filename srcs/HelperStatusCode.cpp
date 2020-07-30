@@ -50,7 +50,6 @@ int			Helper::GETStatus(Client &client)
 	if (client.res.status_code == OK)
 	{
 		errno = 0;
-		std::cout << client.conf["path"] << std::endl;
 		client.read_fd = open(client.conf["path"].c_str(), O_RDONLY);
 		if (client.read_fd == -1 && errno == ENOENT)
 			client.res.status_code = NOTFOUND;
