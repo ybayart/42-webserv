@@ -43,6 +43,28 @@ print("==BODY==")
 print(r.text)
 print("========")
 
+print("GET on 8080/test/index.html with preferred language FR and preferred encoding utf8")
+headers = {'Accept-Language': 'fr', 'Accept-Charset': 'utf8'}
+r = requests.get('http://localhost:8080/test/index.html', headers=headers)
+print("==STATUSCODE==")
+print(r.status_code)
+print("==HEADERS==")
+print(r.headers)
+print("==BODY==")
+print(r.text)
+print("========")
+
+print("GET on 8080/test/index.html with preferred language EN and preferred encoding utf8")
+headers = {'Accept-Language': 'en', 'Accept-Charset': 'utf8'}
+r = requests.get('http://localhost:8080/test/index.html', headers=headers)
+print("==STATUSCODE==")
+print(r.status_code)
+print("==HEADERS==")
+print(r.headers)
+print("==BODY==")
+print(r.text)
+print("========")
+
 print("GET on 8080/auth/add.html without auth")
 r = requests.get('http://localhost:8080/auth/add.html')
 print("==STATUSCODE==")
