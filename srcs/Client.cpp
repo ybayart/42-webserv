@@ -37,7 +37,7 @@ Client::~Client()
 		close(tmp_fd);
 		unlink(TMP_PATH);
 	}
-	g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
+	// g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
 }
 
 void	Client::setReadState(bool state)

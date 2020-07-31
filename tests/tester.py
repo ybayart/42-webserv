@@ -85,8 +85,20 @@ print("==BODY==")
 print(r.text)
 print("========")
 
-print("GET on 8080/auth/ with auth")
-r = requests.get('http://localhost:8080/auth/', auth=HTTPBasicAuth('test', 'test'))
+print("GET on 443/ with test host header")
+headers = {'Host': 'test'}
+r = requests.get('http://localhost:443/', headers=headers)
+print("==STATUSCODE==")
+print(r.status_code)
+print("==HEADERS==")
+print(r.headers)
+print("==BODY==")
+print(r.text)
+print("========")
+
+print("GET on 443/ with add host header")
+headers = {'Host': 'add'}
+r = requests.get('http://localhost:443/', headers=headers)
 print("==STATUSCODE==")
 print(r.status_code)
 print("==HEADERS==")

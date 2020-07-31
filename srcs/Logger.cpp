@@ -52,11 +52,14 @@ void			Logger::log(std::string const &message, int value)
 
 std::string		Logger::getTimestamp(void)
 {
-	time_t 		now = time(0);
-	tm 			*ltm = localtime(&now);
+	time_t 		now = 0;
+	tm 			*ltm = NULL;
 	char		buffer[1024];
 	std::string result;
 	
+	now = time(0);
+	if (now)
+		ltm = localtime(&now);
 	strftime(buffer, 1024, "%d/%m/%y %T", ltm);
 	result = buffer;
 	result.insert(result.begin(), '[');

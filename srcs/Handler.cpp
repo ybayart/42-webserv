@@ -204,8 +204,7 @@ void			Handler::getConf(Client &client, Request &req, std::vector<config> &conf)
 	}
 	lstat(client.conf["path"].c_str(), &info);
 	if (S_ISDIR(info.st_mode))
-		if (client.conf.find("index") != elmt.end()
-		&& client.conf["listing"] != "on")
+		if (client.conf["index"][0] && client.conf["listing"] != "on")
 			client.conf["path"] += "/" + elmt["index"];
 	if (req.method == "GET")
 		client.conf["savedpath"] = client.conf["path"];

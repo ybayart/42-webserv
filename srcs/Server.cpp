@@ -19,8 +19,8 @@ Server::~Server()
 		_clients.clear();
 		close(_fd);
 		FD_CLR(_fd, _rSet);
-		if (_port >= 0)
-			g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
+		// if (_port >= 0)
+		// 	g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }
 
