@@ -34,6 +34,11 @@ dir_conf=./conf/
 broken_conf=(broken.conf broken2.conf broken3.conf)
 config_files=(webserv.conf)
 
+which siege
+if [[ $? != 0 ]]; then
+	apt-get install siege
+fi
+
 # if nginx is running it takes port 80 (for example)
 service nginx stop
 
@@ -78,8 +83,12 @@ i=0;
 while (($i < 10000)); do
 	./webserv ${dir_conf}${config_files[0]} &
 	pid=$!
-	echo $!
 	sleep 0.05
+	siege -t1s http://localhost:80 &
+	pid_siege=$!
+	sleep 0.5
 	kill -2 $pid
+	kill -2 $pid_siege
 	wait $pid
+	wait $pid_siege
 done
