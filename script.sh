@@ -34,6 +34,11 @@ dir_conf=./conf/
 broken_conf=(broken.conf broken2.conf broken3.conf)
 config_files=(webserv.conf)
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 which siege
 if [[ $? != 0 ]]; then
 	apt-get install siege
@@ -84,11 +89,15 @@ while (($i < 10000)); do
 	./webserv ${dir_conf}${config_files[0]} &
 	pid=$!
 	sleep 0.05
-	siege -t1s http://localhost:80 &
+	siege --quiet -t1s http://localhost:80 &>/dev/null &
 	pid_siege=$!
 	sleep 0.5
 	kill -2 $pid
-	kill -2 $pid_siege
 	wait $pid
+	if [ $? != 0 ]; then
+		exit
+	fi
 	wait $pid_siege
+	i=$(($i+1))
+	echo $i
 done
