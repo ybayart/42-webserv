@@ -28,7 +28,14 @@ _IWHITE='\e[47m'
 
 # **************************************************************************** #
 
+dir_conf=./conf/
+
+# list of all config files
+broken_conf=(broken.conf broken2.conf broken3.conf)
 config_files=(webserv.conf)
+
+# if nginx is running it takes port 80 (for example)
+service nginx stop
 
 if [ ! -f "webserv" ]; then
 	make
@@ -55,19 +62,24 @@ printf "${_GREEN}./webserv ${_YELLOW}aaaaa${_END}\n"
 check_return_not 0
 
 printf "${_ICYAN}${_BOLD}${_GREY}  SYNTAX CONFIG TESTS  ${_END}\n"
-printf "${_GREEN}./webserv ${_YELLOW}./conf/broken.conf${_END}\n"
-./webserv ./conf/broken.conf
-check_return_not 0
 
-printf "${_GREEN}./webserv ${_YELLOW}./conf/broken2.conf${_END}\n"
-./webserv ./conf/broken2.conf
-check_return_not 0
+i=0;
+size=${#broken_conf[@]}
+while (($i < $size)); do
+	printf "${_GREEN}./webserv ${_YELLOW}${dir_conf}${broken_conf[$i]}${_END}\n"
+	./webserv ${dir_conf}${broken_conf[$i]}
+	check_return_not 0
+	i=${i}+1
+done
 
+printf "${_ICYAN}${_BOLD}${_GREY}  TESTS FOR CTRL-C  ${_END}\n"
 
-printf "${_GREEN}./webserv ${_YELLOW}./conf/broken3.conf${_END}\n"
-./webserv ./conf/broken3.conf
-check_return_not 0
-
-printf "${_GREEN}./webserv ${_YELLOW}./conf/broken3.conf${_END}\n"
-./webserv ./conf/webserv.conf
-check_return_not 0
+i=0;
+while (($i < 10000)); do
+	./webserv ${dir_conf}${config_files[0]} &
+	pid=$!
+	echo $!
+	sleep 0.05
+	kill -2 $pid
+	wait $pid
+done
