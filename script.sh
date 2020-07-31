@@ -92,7 +92,7 @@ while (($i < 10000)); do
 	siege --quiet -t1s http://localhost:80 &>/dev/null &
 	pid_siege=$!
 	sleep 0.5
-	kill -2 $pid
+	kill -2 $pid &>/dev/null
 	wait $pid
 	if [ $? != 0 ]; then
 		exit
