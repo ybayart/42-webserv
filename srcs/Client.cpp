@@ -21,10 +21,8 @@ Client::~Client()
 	if (fd != -1)
 	{
 		close(fd);
-		if (FD_ISSET(fd, rSet))
-			FD_CLR(fd, rSet);
-		if (FD_ISSET(fd, wSet))
-			FD_CLR(fd, wSet);
+		FD_CLR(fd, rSet);
+		FD_CLR(fd, wSet);
 	}
 	if (read_fd != -1)
 	{
@@ -41,7 +39,7 @@ Client::~Client()
 		close(tmp_fd);
 		unlink(TMP_PATH);
 	}
-	// g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
+	g_logger.log("connection closed from " + ip + ":" + std::to_string(port), LOW);
 }
 
 void	Client::setReadState(bool state)

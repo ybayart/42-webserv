@@ -2,6 +2,7 @@
 #include "Config.hpp"
 
 extern	std::vector<Server> g_servers;
+extern	bool				g_state;
 
 Config::Config()
 {
@@ -18,8 +19,7 @@ void			Config::exit(int sig)
 	(void)sig;
 
 	std::cout << "\n" << "exiting...\n";
-	g_servers.clear();
-	::exit(0);
+	g_state = false;
 }
 
 void			Config::init(fd_set *rSet, fd_set *wSet, fd_set *readSet, fd_set *writeSet, struct timeval *timeout)

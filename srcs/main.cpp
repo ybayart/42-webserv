@@ -4,6 +4,7 @@
 
 std::vector<Server>		g_servers;
 Logger					g_logger(1, "console", LOW);
+bool					g_state = true;
 
 int		ret_error(std::string error)
 {
@@ -35,7 +36,7 @@ int 	main(int ac, char **av)
 		return (1);
 	}
 
-	while (1)
+	while (g_state)
 	{
 		readSet = rSet;
 		writeSet = wSet;
@@ -77,5 +78,6 @@ int 	main(int ac, char **av)
 			}	
 		}
 	}
+	g_servers.clear();
 	return(0);
 }

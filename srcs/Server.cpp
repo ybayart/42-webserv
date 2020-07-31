@@ -10,13 +10,7 @@ Server::~Server()
 	if (_fd != -1)
 	{
 		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
-		{
-			if (*it != NULL)
-			{
-				delete *it;
-				*it = NULL;
-			}
-		}
+			delete *it;
 		while (!_tmp_clients.empty())
 		{
 			close(_tmp_clients.front());
@@ -25,7 +19,7 @@ Server::~Server()
 		_clients.clear();
 		close(_fd);
 		FD_CLR(_fd, _rSet);
-		// g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
+		g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }
 
@@ -180,8 +174,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	else
 	{
 		_clients.erase(it);
-		if (client)
-			delete client;
+		delete client;
 		g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
