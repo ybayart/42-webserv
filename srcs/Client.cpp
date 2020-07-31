@@ -19,9 +19,13 @@ Client::~Client()
 {
 	free(rBuf);
 	if (fd != -1)
+	{
 		close(fd);
-	FD_CLR(fd, rSet);
-	FD_CLR(fd, wSet);
+		if (FD_ISSET(fd, rSet))
+			FD_CLR(fd, rSet);
+		if (FD_ISSET(fd, wSet))
+			FD_CLR(fd, wSet);
+	}
 	if (read_fd != -1)
 	{
 		close(read_fd);
@@ -146,7 +150,7 @@ void	Client::setToStandBy()
 	if (read_fd != -1)
 		close(read_fd);
 	read_fd = -1;
-	if (read_fd != -1)
+	if (write_fd != -1)
 		close(write_fd);
 	write_fd = -1;
 	memset((void *)rBuf, (int)0, (size_t)(BUFFER_SIZE + 1));

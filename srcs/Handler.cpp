@@ -422,21 +422,19 @@ void		Handler::parseCGIResult(Client &client)
 	client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
 }
 
-std::string		Handler::createResponse(Response &res)
+void		Handler::createResponse(Client &client)
 {
 	std::map<std::string, std::string>::const_iterator b;
-	std::string response;
 
-	response = res.version + " " + res.status_code + "\r\n";
-	b = res.headers.begin();
-	while (b != res.headers.end())
+	client.response = client.res.version + " " + client.res.status_code + "\r\n";
+	b = client.res.headers.begin();
+	while (b != client.res.headers.end())
 	{
 		if (b->second != "")
-			response += b->first + ": " + b->second + "\r\n";
+			client.response += b->first + ": " + b->second + "\r\n";
 		++b;
 	}
-	response += "\r\n";
-	response += res.body;
-	res.clear();
-	return (response);
+	client.response += "\r\n";
+	client.response += client.res.body;
+	client.res.clear();
 }

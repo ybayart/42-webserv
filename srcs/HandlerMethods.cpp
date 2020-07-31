@@ -69,7 +69,7 @@ void	Handler::handleGet(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break;
@@ -102,7 +102,7 @@ void	Handler::handleHead(Client &client)
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
-			client.response = createResponse(client.res);
+			createResponse(client);
 			client.status = Client::RESPONSE;
 			break ;
 	}
@@ -160,7 +160,7 @@ void	Handler::handlePost(Client &client)
 			{
 				if (client.res.headers["Content-Length"][0] == '\0')
 					client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -200,7 +200,7 @@ void	Handler::handlePut(Client &client)
 		case Client::BODY:
 			if (client.write_fd == -1)
 			{
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -222,7 +222,7 @@ void	Handler::handleConnect(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -255,7 +255,7 @@ void	Handler::handleTrace(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -272,7 +272,7 @@ void	Handler::handleOptions(Client &client)
 			client.res.headers["Server"] = "webserv";
 			if (client.req.uri != "*")
 				client.res.headers["Allow"] = client.conf["methods"];
-			client.response = createResponse(client.res);
+			createResponse(client);
 			client.status = Client::RESPONSE;
 			break ;
 	}
@@ -303,7 +303,7 @@ void	Handler::handleDelete(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;
@@ -330,7 +330,7 @@ void	Handler::handleBadRequest(Client &client)
 			if (client.read_fd == -1)
 			{
 				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				client.response = createResponse(client.res);
+				createResponse(client);
 				client.status = Client::RESPONSE;
 			}
 			break ;

@@ -10,7 +10,13 @@ Server::~Server()
 	if (_fd != -1)
 	{
 		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
-			delete *it;
+		{
+			if (*it != NULL)
+			{
+				delete *it;
+				*it = NULL;
+			}
+		}
 		while (!_tmp_clients.empty())
 		{
 			close(_tmp_clients.front());
@@ -19,8 +25,7 @@ Server::~Server()
 		_clients.clear();
 		close(_fd);
 		FD_CLR(_fd, _rSet);
-		// if (_port >= 0)
-		// 	g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
+		// g_logger.log("[" + std::to_string(_port) + "] " + "closed", LOW);
 	}
 }
 
@@ -174,8 +179,9 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	}
 	else
 	{
-		delete client;
 		_clients.erase(it);
+		if (client)
+			delete client;
 		g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
@@ -232,7 +238,16 @@ void	Server::send503(int fd)
 	response.headers["Server"] = "webserv";
 	response.body = UNAVAILABLE;
 	response.headers["Content-Length"] = std::to_string(response.body.size());
-	str = _handler.createResponse(response);
+	std::map<std::string, std::string>::const_iterator b = response.headers.begin();
+	str = response.version + " " + response.status_code + "\r\n";
+	while (b != response.headers.end())
+	{
+		if (b->second != "")
+			str += b->first + ": " + b->second + "\r\n";
+		++b;
+	}
+	str += "\r\n";
+	str += response.body;
 	write(fd, str.c_str(), str.size());
 	close(fd);
 	FD_CLR(fd, _wSet);

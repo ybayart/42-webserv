@@ -24,7 +24,7 @@ class Handler
 		void			parseRequest(Client &client, std::vector<config> &conf);
 		void			parseBody(Client &client);
 		void			dispatcher(Client &client);
-		std::string		createResponse(Response &res);
+		void			createResponse(Client &client);
 
 	private:
 		void			handleGet(Client &client);
