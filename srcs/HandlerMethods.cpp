@@ -180,16 +180,15 @@ void	Handler::handlePut(Client &client)
 		case Client::CODE:
 			if (_helper.getStatusCode(client))
 				client.setFileToWrite(true);
+			else
+				client.setFileToRead(true);
 			client.res.headers["Date"] = _helper.getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == CREATED || client.res.status_code == NOCONTENT)
 			{
-				client.res.headers["Location"] = client.conf["path"];
+				client.res.headers["Location"] = client.req.uri;
 				if (client.res.status_code == CREATED)
-				{
 					client.res.body = "Ressource created\n";
-					client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
-				}
 			}
 			if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
@@ -198,8 +197,9 @@ void	Handler::handlePut(Client &client)
 			client.status = Client::BODY;
 			break ;
 		case Client::BODY:
-			if (client.write_fd == -1)
+			if (client.write_fd == -1 && client.read_fd == -1)
 			{
+				client.res.headers["Content-Length"] = std::to_string(client.res.body.size());
 				createResponse(client);
 				client.status = Client::RESPONSE;
 			}

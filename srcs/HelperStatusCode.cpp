@@ -121,7 +121,7 @@ int			Helper::PUTStatus(Client &client)
 	if (client.res.status_code == OK && client.conf.find("max_body") != client.conf.end()
 	&& client.req.body.size() > (unsigned long)atoi(client.conf["max_body"].c_str()))
 		client.res.status_code = REQTOOLARGE;
-	else
+	else if (client.res.status_code == OK)
 	{
 		errno = 0;
 		fd = open(client.conf["path"].c_str(), O_RDONLY);

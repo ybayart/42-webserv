@@ -235,12 +235,18 @@ void			Handler::negotiate(Client &client)
 					path = client.conf["savedpath"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
+					{
+						client.res.headers["Content-Language"] = it->second;
 						break ;
+					}
 					ext = it2->second + "." + it->second;
 					path = client.conf["savedpath"] + "." + ext;
 					fd = open(path.c_str(), O_RDONLY);
 					if (fd != -1)
+					{
+						client.res.headers["Content-Language"] = it->second;
 						break ;
+					}
 				}
 			}
 			else
@@ -249,10 +255,11 @@ void			Handler::negotiate(Client &client)
 				path = client.conf["savedpath"] + "." + ext;
 				fd = open(path.c_str(), O_RDONLY);
 				if (fd != -1)
+				{
+					client.res.headers["Content-Language"] = it->second;
 					break ;
+				}
 			}
-			if (fd != -1)
-				break ;
 		}
 	}
 	else if (languageMap.empty())
