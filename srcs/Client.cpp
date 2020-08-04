@@ -18,6 +18,7 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 Client::~Client()
 {
 	free(rBuf);
+	rBuf = NULL;
 	if (fd != -1)
 	{
 		close(fd);

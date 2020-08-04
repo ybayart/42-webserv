@@ -7,10 +7,17 @@ Server::Server() : _fd(-1), _maxFd(-1), _port(-1)
 
 Server::~Server()
 {
+	Client		*client = NULL;
+
 	if (_fd != -1)
 	{
 		for (std::vector<Client*>::iterator it(_clients.begin()); it != _clients.end(); ++it)
-			delete *it;
+		{
+			client = *it;
+			*it = NULL;
+			if (client)
+				delete client;
+		}
 		while (!_tmp_clients.empty())
 		{
 			close(_tmp_clients.front());
@@ -173,8 +180,10 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 	}
 	else
 	{
+		*it = NULL;
 		_clients.erase(it);
-		delete client;
+		if (client)
+			delete client;
 		g_logger.log("[" + std::to_string(_port) + "] " + "connected clients: " + std::to_string(_clients.size()), LOW);
 		return (0);
 	}
