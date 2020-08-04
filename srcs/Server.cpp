@@ -122,7 +122,7 @@ void	Server::refuseConnection()
 
 	errno = 0;
 	len = sizeof(struct sockaddr);
-	if ((fd = accept(_fd, (struct sockaddr *)&info, &len)))
+	if ((fd = accept(_fd, (struct sockaddr *)&info, &len)) == -1)
 		throw(ServerException("accept()", std::string(strerror(errno))));
 	if (_tmp_clients.size() < 10)
 	{
