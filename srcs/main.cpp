@@ -47,6 +47,8 @@ int 	main(int ac, char **av)
 			{
 				try
 				{
+					if (!g_state)
+						break ;
 					if (config.getOpenFd(g_servers) > MAX_FD)
 						s->refuseConnection();
 					else

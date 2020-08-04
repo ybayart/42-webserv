@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+extern bool					g_state;
+
 Server::Server() : _fd(-1), _maxFd(-1), _port(-1)
 {
 	memset(&_info, 0, sizeof(_info));
