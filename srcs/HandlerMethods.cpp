@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "utils.h"
 #include "Handler.hpp"
 
 void	Handler::dispatcher(Client &client)
@@ -61,7 +62,7 @@ void	Handler::handleGet(Client &client)
 				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;
 			break ;
@@ -99,7 +100,7 @@ void	Handler::handleHead(Client &client)
 				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			client.res.headers["Content-Length"] = std::to_string(file_info.st_size);
 			createResponse(client);
@@ -146,7 +147,7 @@ void	Handler::handlePost(Client &client)
 				client.res.headers["WWW-Authenticate"] = "Basic";
 			else if (client.res.status_code == NOTALLOWED)
 				client.res.headers["Allow"] = client.conf["methods"];
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == CREATED)
 				client.res.body = "File created\n";
@@ -182,7 +183,7 @@ void	Handler::handlePut(Client &client)
 				client.setFileToWrite(true);
 			else
 				client.setFileToRead(true);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == CREATED || client.res.status_code == NOCONTENT)
 			{
@@ -214,7 +215,7 @@ void	Handler::handleConnect(Client &client)
 		case Client::CODE:
 			_helper.getStatusCode(client);
 			client.setFileToRead(true);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;
 			break ;
@@ -235,7 +236,7 @@ void	Handler::handleTrace(Client &client)
 	{
 		case Client::CODE:
 			_helper.getStatusCode(client);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == OK)
 			{
@@ -268,7 +269,7 @@ void	Handler::handleOptions(Client &client)
 	{
 		case Client::CODE:
 			_helper.getStatusCode(client);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.req.uri != "*")
 				client.res.headers["Allow"] = client.conf["methods"];
@@ -286,7 +287,7 @@ void	Handler::handleDelete(Client &client)
 			std::cout << "here\n";
 			if (!_helper.getStatusCode(client))
 				client.setFileToRead(true);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			if (client.res.status_code == OK)
 			{
@@ -322,7 +323,7 @@ void	Handler::handleBadRequest(Client &client)
 			_helper.getErrorPage(client);
 			fstat(client.read_fd, &file_info);
 			client.setFileToRead(true);
-			client.res.headers["Date"] = _helper.getDate();
+			client.res.headers["Date"] = ft::getDate();
 			client.res.headers["Server"] = "webserv";
 			client.status = Client::BODY;
 			break ;

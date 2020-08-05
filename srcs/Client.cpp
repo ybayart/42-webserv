@@ -1,7 +1,8 @@
+#include "utils.h"
 #include "Client.hpp"
 
 Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
-: fd(filed), read_fd(-1), write_fd(-1), status(PARSING), cgi_pid(-1), tmp_fd(-1), rSet(r), wSet(w)
+: fd(filed), read_fd(-1), write_fd(-1), status(STANDBY), cgi_pid(-1), tmp_fd(-1), rSet(r), wSet(w)
 {
 	ip = inet_ntoa(info.sin_addr);
 	port = htons(info.sin_port);
@@ -9,9 +10,11 @@ Client::Client(int filed, fd_set *r, fd_set *w, struct sockaddr_in info)
 	memset((void *)rBuf, 0, BUFFER_SIZE + 1);
 	fcntl(fd, F_SETFL, O_NONBLOCK);
 	FD_SET(fd, rSet);
+	FD_SET(fd, wSet);
 	chunk.len = 0;
 	chunk.done = false;
 	chunk.found = false;
+	last_date = ft::getDate();
 	g_logger.log("new connection from " + ip + ":" + std::to_string(port), LOW);
 }
 

@@ -67,6 +67,20 @@ c == ' ')
 		return (nb * getpower(nb, power - 1));
 	}
 
+	std::string		getDate()
+	{
+		struct timeval	time;
+		struct tm		*tm;
+		char			buf[BUFFER_SIZE + 1];
+		int				ret;
+
+		gettimeofday(&time, NULL);
+		tm = localtime(&time.tv_sec);
+		ret = strftime(buf, BUFFER_SIZE, "%a, %d %b %Y %T %Z", tm);
+		buf[ret] = '\0';
+		return (buf);
+	}
+
 	void	freeAll(char **args, char **env)
 	{
 		free(args[0]);

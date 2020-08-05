@@ -1,3 +1,4 @@
+#include "utils.h"
 #include "Server.hpp"
 
 extern bool					g_state;
@@ -172,7 +173,7 @@ int		Server::readRequest(std::vector<Client*>::iterator it)
 			log = "REQUEST:\n";
 			log += client->rBuf;
 			g_logger.log(log, HIGH);
-			client->last_date = _handler._helper.getDate();
+			client->last_date = ft::getDate();
 			_handler.parseRequest(*client, _conf);
 			client->setWriteState(true);
 		}
@@ -213,7 +214,7 @@ int		Server::writeResponse(std::vector<Client*>::iterator it)
 				client->response.clear();
 				client->setToStandBy();
 			}
-			client->last_date = _handler._helper.getDate();
+			client->last_date = ft::getDate();
 			break ;
 		case Client::STANDBY:
 			if (getTimeDiff(client->last_date) >= TIMEOUT)
@@ -234,11 +235,12 @@ void	Server::send503(int fd)
 {
 	Response		response;
 	std::string		str;
+	int				ret = 0;
 
 	response.version = "HTTP/1.1";
 	response.status_code = UNAVAILABLE;
 	response.headers["Retry-After"] = RETRY;
-	response.headers["Date"] = _handler._helper.getDate();
+	response.headers["Date"] = ft::getDate();
 	response.headers["Server"] = "webserv";
 	response.body = UNAVAILABLE;
 	response.headers["Content-Length"] = std::to_string(response.body.size());
@@ -252,12 +254,16 @@ void	Server::send503(int fd)
 	}
 	str += "\r\n";
 	str += response.body;
-	write(fd, str.c_str(), str.size());
-	close(fd);
-	FD_CLR(fd, _wSet);
-	_tmp_clients.pop();
+	ret = write(fd, str.c_str(), str.size());
+	if (ret >= -1)
+	{
+		close(fd);
+		FD_CLR(fd, _wSet);
+		_tmp_clients.pop();
+	}
 	g_logger.log("[" + std::to_string(_port) + "] " + "connection refused, sent 503", LOW);
 }
+
 
 int		Server::getTimeDiff(std::string start)
 {

@@ -15,7 +15,6 @@ class Helper
 		Helper();
 		~Helper();
 
-		std::string		getDate();
 		std::string		getLastModified(std::string path);
 		std::string		findType(Client &client);
 		void			getErrorPage(Client &client);
