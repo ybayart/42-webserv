@@ -62,12 +62,12 @@ print("GET on 8080/auth/add.html with auth")
 r = requests.get('http://localhost:8080/auth/add.html', auth=HTTPBasicAuth('test', 'test'))
 printResponse(r)
 
-print("GET on 443/ with test host header")
+print("GET on 80/ with test host header")
 headers = {'Host': 'test'}
-r = requests.get('http://localhost:443/', headers=headers)
+r = requests.get('http://localhost:80/', headers=headers)
 printResponse(r)
 
-print("GET on 443/ with add host header")
+print("GET on 80/ with add host header")
 headers = {'Host': 'add'}
-r = requests.get('http://localhost:443/', headers=headers)
+r = requests.get('http://localhost:80/', headers=headers)
 printResponse(r)
