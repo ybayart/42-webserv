@@ -82,6 +82,12 @@ int				Helper::findLen(Client &client)
 
 	to_convert = client.rBuf;
 	to_convert = to_convert.substr(0, to_convert.find("\r\n"));
+	while (to_convert[0] == '\n')
+		to_convert.erase(to_convert.begin());
+	if (to_convert.size() == 0)
+		len = 0;
+	else
+		len = fromHexa(to_convert.c_str());
 	len = fromHexa(to_convert.c_str());
 	tmp = client.rBuf;
 	tmp = tmp.substr(tmp.find("\r\n") + 2);

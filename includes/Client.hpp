@@ -14,7 +14,7 @@
 #include "messages.h"
 #include "Logger.hpp"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 32768
 #define TMP_PATH 	"/tmp/cgi.tmp"
 
 extern Logger g_logger;
