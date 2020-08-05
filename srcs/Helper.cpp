@@ -45,20 +45,6 @@ void			Helper::getErrorPage(Client &client)
 	client.read_fd = open(path.c_str(), O_RDONLY);
 }
 
-std::string		Helper::getDate()
-{
-	struct timeval	time;
-	struct tm		*tm;
-	char			buf[BUFFER_SIZE + 1];
-	int				ret;
-
-	gettimeofday(&time, NULL);
-	tm = localtime(&time.tv_sec);
-	ret = strftime(buf, BUFFER_SIZE, "%a, %d %b %Y %T %Z", tm);
-	buf[ret] = '\0';
-	return (buf);
-}
-
 std::string		Helper::getLastModified(std::string path)
 {
 	char		buf[BUFFER_SIZE + 1];
