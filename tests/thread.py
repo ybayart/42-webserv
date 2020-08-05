@@ -23,11 +23,17 @@ class Client(Thread):
 			"connection" : "keep-alive",
 		    "keep-alive" : "timeout=10, max=10"
 		};
-		max = 5
+		max = 100
 		for x in range(max):
-			response = requests.get(urls[self.method], headers = headers)
-			# if response.text != "404: File not found\n":
-			# 	print(self.method + "error")
+			try:
+				response = requests.get(urls[self.method], headers = headers)
+				if response.text != "404: File not found\n":
+					print("==STATUSCODE==")
+					print(response.status_code)
+					print("==HEADERS==")
+					print(response.headers)
+			except:
+				print("connection reset by peer")
 
 # Création des threads
 threads = []
