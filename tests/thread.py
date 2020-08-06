@@ -15,9 +15,9 @@ class Client(Thread):
 	def run(self):
 		"""Code à exécuter pendant l'exécution du thread."""
 
-		url = "http://localhost:8080/"
+		url = "http://localhost:8080/f"
 		urls = {
-			"get": url,
+			"get": url
 		}
 		headers = {
 			"connection" : "keep-alive",
