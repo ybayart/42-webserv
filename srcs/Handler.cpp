@@ -10,15 +10,15 @@ Handler::~Handler()
 {
 	
 }
-/**
-	@author sujlee
-	@param client 클라이언트 객체
-	@param conf map<string, elmt>를 담는 벡터( elmt = map<string, string> )
-	@return void
-	@brief
-	read()로 읽어온 클라이언트 요청을 struct Request형태로 파싱하여, client.req에 할당
-	Server.cpp의 readRequest에서 호출
-*/
+/*!
+ *	@author sujlee
+ *	@param client 클라이언트 객체
+ *	@param conf map<string, elmt>를 담는 벡터( elmt = map<string, string> )
+ *	@return void
+ *	@brief
+ *	read()로 읽어온 클라이언트 요청을 struct Request형태로 파싱하여, client.req에 할당
+ *	Server.cpp의 readRequest에서 호출
+ */
 void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 {
 	Request				request;
