@@ -10,19 +10,27 @@ Handler::~Handler()
 {
 	
 }
-
+/**
+	@author sujlee
+	@param client 클라이언트 객체
+	@param conf map<string, elmt>를 담는 벡터( elmt = map<string, string> )
+	@return void
+	@brief
+	read()로 읽어온 클라이언트 요청을 struct Request형태로 파싱하여, client.req에 할당
+	Server.cpp의 readRequest에서 호출
+*/
 void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 {
 	Request				request;
 	std::string			tmp;
 	std::string			buffer;
 
-	buffer = std::string(client.rBuf);
+	buffer = std::string(client.rBuf);			//=파싱 대상
 	if (buffer[0] == '\r')
 		buffer.erase(buffer.begin());
 	if (buffer[0] == '\n')
 		buffer.erase(buffer.begin());
-	ft::getline(buffer, request.method, ' ');
+	ft::getline(buffer, request.method, ' ');	//공백문자 기준으로 buffer를 끊어 request.~~에 저장
 	ft::getline(buffer, request.uri, ' ');
 	ft::getline(buffer, request.version);
 	if (parseHeaders(buffer, request))
@@ -34,17 +42,17 @@ void			Handler::parseRequest(Client &client, std::vector<config> &conf)
 		if (client.conf["root"][0] != '\0')
 			chdir(client.conf["root"].c_str());
 		if (request.method == "POST" || request.method == "PUT")
-			client.status = Client::BODYPARSING;
+			client.status = Client::BODYPARSING;	//=1
 		else
-			client.status = Client::CODE;
+			client.status = Client::CODE;			//=2
 	}
 	else
 	{
 		request.method = "BAD";
-		client.status = Client::CODE;
+		client.status = Client::CODE;				//=2
 	}
-	client.req = request;
-	tmp = client.rBuf;
+	client.req = request;		//파싱한 struct request를 client에 할당
+	tmp = client.rBuf;			//한 문장 파싱 끝. client.rBuf가 다음 문장을 가리키도록 수정
 	tmp = tmp.substr(tmp.find("\r\n\r\n") + 4);
 	strcpy(client.rBuf, tmp.c_str());
 }
